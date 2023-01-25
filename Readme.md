@@ -19,27 +19,24 @@ To incentivize users to participate in market research, the decentralized market
 ### Anonymity
 To protect the anonymity of participants, the decentralized market research application can use zero-knowledge proofs or other privacy-preserving technologies to ensure that user data is kept private. Additionally, using a decentralized identity solution can help separate the identity of the participant from the data they provide, preserving anonymity.
 
-## Solution
-
-### Flow:
+## Structure
 Creation -> Answers -> Review -> Result
-
-Researcher creates questionaire and set budget and participants:
+Researcher creates questionnaire and set budget and participants:
 30% of the earnings go to creator 70% to reviewers
 
 ### Prerequisites
 Identity confirmation for answerer, and reviewer
 
 ### Steps:
-#### Creation of questionare
-Researcher creates questionaire and sets budget and participants
+#### Creation of questionnaire
+Researcher creates questionnaire and sets budget and participants
 Budget: 
 - 30% -> Creator 
 - 65% -> Reviewer
 - 5% -> Platform, later DAO
 
 #### Answers are distributed
-User can request questionare and then have 10 minutes time to answer the questionare
+User can request questionnaire and then have 10 minutes time to answer the questionnaire
 After all the questions are answered go to review process:
 
 #### Review process defines payout of creator:
