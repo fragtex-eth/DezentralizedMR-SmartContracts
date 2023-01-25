@@ -3,23 +3,7 @@
 Decentralization has the potential to revolutionize market research by making it more accurate, transparent, and accessible. By removing intermediaries and distributing power among a network of users, decentralized systems can provide a more representative and diverse sample of opinions, resulting in more accurate data.
 One of the key benefits of decentralization in market research is the ability to reach a wider and more diverse group of participants. Traditional market research relies on a centralized system where a small group of intermediaries control the data collection and analysis process. However, in a decentralized system, anyone can participate and contribute data, resulting in a more representative sample of the population. This is especially important for marginalized groups who are often underrepresented in traditional market research.
 
-## Problem
-### Security
-Decentralized applications are built on blockchain technology, which means that they are vulnerable to hacking and other security threats. It is essential to ensure that the smart contract and the overall system are secure to protect the privacy and data of users.
-
-### User Experience
-Decentralized systems can be complex and difficult for non-technical users to navigate. The user experience needs to be designed in a way that is intuitive and easy to use, to make it accessible to a wide range of participants.
-
-### Data Governance
-Decentralized systems rely on a network of participants to contribute data. It is important to establish clear rules and guidelines for data governance, to ensure that the data is accurate and reliable.
-
-### Incentivization
-Incentivizing users to participate in market research can be a challenge in decentralized systems. It is important to find ways to incentivize users to contribute data, such as through rewards or tokens.
-
-### Anonymity
-In market research, protecting the identity of participants is crucial. It is important to establish a system that allows for anonymity while still providing accurate data.
-
-## Solution
+## Problem & Solution
 ### Security
 To ensure the security of a decentralized market research application, it is essential to use secure smart contract development practices and to conduct regular security audits. Additionally, implementing encryption and secure data storage methods can help protect user data.
 
@@ -52,7 +36,7 @@ Researcher creates questionaire and sets budget and participants
 Budget: 
 - 30% -> Creator 
 - 65% -> Reviewer
-- 5% -> Plattform later DAO
+- 5% -> Platform, later DAO
 
 #### Answers are distributed
 User can request questionare and then have 10 minutes time to answer the questionare
@@ -92,5 +76,5 @@ Options (Payout creator defined):
 2. Only verified users can participate
 3. Review Process (Good or Bad)
 4. Consensus: 15/20
-5. Distribution
+5. Distribution of Results and money
 
