@@ -8,7 +8,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   args = [];
 
-  const token = await deploy("Encircled", {
+  const token = await deploy("Survey", {
     from: deployer,
     args: args,
     log: true,
