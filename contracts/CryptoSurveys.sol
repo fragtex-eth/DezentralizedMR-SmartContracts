@@ -18,7 +18,9 @@ contract Survey {
     struct Question {
         string[] questions;
         address[] participants;
+        address[] underReview;
         address[] validAnswers;
+        mapping(address => uint) idxUnderReview;
         mapping(address => mapping(uint => string)) answers;
         mapping(address => Vote) participantResult;
         mapping(address => address[]) assignedReview;
@@ -57,6 +59,10 @@ contract Survey {
         question.participants.push(_participant);
         for (uint i = 0; i < _answers.length; i++) {
             question.answers[_participant][i] = _answers[i];
+            question.idxUnderReview[_participant] = question
+                .idxUnderReview
+                .length;
+            question.underReview.push(_participant);
         }
         if (question.participants.length >= maxNumberOfParticipants) {
             stage = Stage.Review;
@@ -111,5 +117,17 @@ contract Survey {
                 question.validAnswers.push(question.participants[i]);
             }
         }
+    }
+
+    function reviewParticipantFinished(address _participant) external {
+        uint idxPartipant = question.idxUnderReview[_participant];
+        if (idxPartipant < question.underReview.length - 1) {
+            address lastParticipant = question.underReview[
+                question.underReview.length - 1
+            ];
+            question.underReview[idxPartipant] = lastParticipant;
+            question.idxUnderReview[lastParticipant] = idxPartipant;
+        }
+        question.underReview.pop();
     }
 }
