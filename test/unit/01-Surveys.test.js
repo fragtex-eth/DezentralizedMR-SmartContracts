@@ -23,13 +23,13 @@ let credit = async function (to, amount) {
         charles = accounts[3];
         await deployments.fixture(["all"]);
 
-        tokenContract = await ethers.getContract("Encircled");
+        tokenContract = await ethers.getContract("Survey");
         tokenContract = tokenContract.connect(deployer);
         tokenContractAlice = tokenContract.connect(alice);
         tokenContractBob = tokenContract.connect(bob);
         tokenContractCharles = tokenContract.connect(charles);
       });
-      describe("ERC-20", function () {
+      describe("Survey Test", function () {
         describe("Initalization()", function () {
           it("should have the name " + tokenName, async function () {
             expect(await tokenContract.name()).to.equal(tokenName);

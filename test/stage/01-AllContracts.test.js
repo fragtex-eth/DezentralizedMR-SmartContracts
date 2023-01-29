@@ -15,78 +15,11 @@ const helpers = require("@nomicfoundation/hardhat-network-helpers");
         team = accounts[4];
         await deployments.fixture(["all"]);
 
-        tokenContract = await ethers.getContract("Encircled");
-        tokenContractUSD = await ethers.getContract("BEP20USDT");
-        tokenContractVesting = await ethers.getContract("EncdVesting");
-        tokenContractICO = await ethers.getContract("ENCD_ICOT");
-
+        tokenContract = await ethers.getContract("Survey");
         tokenContract = tokenContract.connect(deployer);
-
-        tokenContractICO = tokenContractICO.connect(deployer);
-        tokenContractICOAlice = tokenContractICO.connect(alice);
-        tokenContractICOBob = tokenContractICO.connect(bob);
-        tokenContractICOCharles = tokenContractICO.connect(charles);
-
-        tokenContractUSDT = tokenContractUSD.connect(deployer);
-        tokenContractUSDTAlice = tokenContractUSD.connect(alice);
-        tokenContractUSDTBob = tokenContractUSD.connect(bob);
-        tokenContractUSDTCharles = tokenContractUSD.connect(charles);
-
-        tokenContractVesting = tokenContractVesting.connect(deployer);
-        tokenContractVestingAlice = tokenContractVesting.connect(alice);
-        tokenContractVestingBob = tokenContractVesting.connect(bob);
-        tokenContractVestingCharles = tokenContractVesting.connect(charles);
       });
-      describe("Contract & Test set up", function () {
-        beforeEach(async () => {
-          //Set up contracts
-          //Make ICOContract owner of Vesting Contract
-          tokenContractVesting.transferOwnership(tokenContractICO.address);
-          //Exclude Vesting Contract from Paying and Receiving Fees
-          await tokenContract.excludeFromFee(tokenContractVesting.address);
-          await tokenContract.excludeFromReward(tokenContractVesting.address);
-
-          //Transfer all vested tokens to the vesting contract
-          await tokenContract.transfer(
-            tokenContractVesting.address,
-            ethers.utils.parseUnits("190000000", 18) //Team + Presale
-          );
-          //Transfer the rest to the selected addresses
-          await tokenContract.transfer(
-            "0xbA31CF23ffDff8ADaD7C035551F140239F2F0514",
-            ethers.utils.parseUnits("10000000", 18) //Liquidity
-          );
-
-          /**
-           * Test set up (Transfer Mock USDT to the different users)
-           */
-          await tokenContractUSDT.transfer(
-            alice.address,
-            ethers.utils.parseUnits("1000000000000000", 18)
-          );
-          await tokenContractUSDT.transfer(
-            bob.address,
-            ethers.utils.parseUnits("1000000000000000", 18)
-          );
-          await tokenContractUSDT.transfer(
-            charles.address,
-            ethers.utils.parseUnits("1000000000000000", 18)
-          );
-          //All team members approve the ico contract to spend their tokens
-          await tokenContractUSDTAlice.approve(
-            tokenContractICO.address,
-            ethers.utils.parseUnits("10000000000000000000", 18)
-          );
-          await tokenContractUSDTBob.approve(
-            tokenContractICO.address,
-            ethers.utils.parseUnits("10000000000000000000", 18)
-          );
-          await tokenContractUSDTCharles.approve(
-            tokenContractICO.address,
-            ethers.utils.parseUnits("10000000000000000000", 18)
-          );
-        });
-        it("Cycle 1: Multiple users buy the tokens in the presale", async function () {
+      describe("Initial Stage", function () {
+        it("SetUp", async function () {
           expect(await tokenContract.balanceOf(deployer.address)).to.be.equal(
             0
           );
