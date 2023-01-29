@@ -5,7 +5,7 @@ contract Survey {
     enum Vote {
         Poor, //0
         Fair,
-        Average,
+        Average, //10
         Good,
         Excellent //4
     }
@@ -16,23 +16,27 @@ contract Survey {
     }
 
     struct Question {
-        string[] questions;
-        address[] participants;
-        address[] underReview;
+        string[] questions; //Array of the questions
+        address[] participants; //Array of the participants
+        address[] underReview; //Array of participants that have not been fully reviewed yet
         address[] validAnswers; //All participants with valid answers
         address[] inValidAnswers; //All participants with invalid answers
-        uint hitReview;
-        uint nextReview;
-        mapping(address => uint) idxUnderReview;
-        mapping(address => mapping(uint => string)) answers;
-        mapping(address => Vote) participantResult;
+        uint hitReview; // Number of Reviewers that made the correct choice
+        uint nextReview; // Amount of Reviewers that are close to the final choice receive 30% of the reward that hit users receive
+        uint excellent; // Number of Reviewers that made the correct choice
+        uint good;
+        uint average; // Number of Reviewers that made the correct choice
+        mapping(address => bool) isParticipant; //If address is participant
+        mapping(address => uint) idxUnderReview; //Indexin the UnderReview array of specific addresses
+        mapping(address => bool) participantReviewed; //Address has been reviewed
+        mapping(address => mapping(uint => string)) answers; //Given answers by the participants
+        mapping(address => Vote) participantResult; //Result of the
         mapping(address => address[]) assignedReview;
-        mapping(address => address) reviewAssigned;
+        mapping(address => address) reviewAssigned; //Links Reviewee to participant that is assigned to him
         mapping(address => uint) resultReview; // Result of reviewer in uint;
-        mapping(address => mapping(Vote => address[])) votesReview;
-        mapping(address => bool) reviewers;
-        mapping(address => uint) numberParticipentReviewed;
-        mapping(address => bool) reviewed; //Reviewer has reviewed
+        mapping(address => mapping(Vote => address[])) votesReview; //Participant mapping to each of the choices the reviewers took
+        mapping(address => uint) numberParticipentReviewed; //Number of times a reviewer has been reviewed
+        mapping(address => bool) rAssigned; //Participant has been assigned to reviewre
     }
 
     Stage internal stage;
@@ -40,7 +44,8 @@ contract Survey {
     uint256 public maxNumberOfParticipants;
     uint256 public reviewsNeeded;
     uint256 public deadlineTime;
-    uint256 public capital;
+    uint256 public capitalParticipants;
+    uint256 public capitalReview;
     bool internal questionsSet = false;
     uint256 internal randNonce = 0;
     uint256 internal difference = 1;
@@ -57,14 +62,33 @@ contract Survey {
         deadlineTime = _endTime;
         stage = Stage.Answer;
         reviewsNeeded = _reviewNeeded;
-        capital = _capital;
+        capitalParticipants = (_capital * 100) / 70;
+        capitalReview = _capital - capitalParticipants;
     }
 
+    /**
+     * @dev Function to answer the question
+     *
+     * @param _answers Survey answers
+     * @param _participant Address participant
+     */
     function answerQuestions(
         string[] calldata _answers,
         address _participant
     ) external {
-        require(question.participants.length < maxNumberOfParticipants);
+        require(
+            question.isParticipant[_participant] == false,
+            "Already answerde"
+        );
+        require(
+            _answers.length == question.questions.length,
+            "Number of answers have to be equal to the number of questions"
+        );
+        require(
+            question.participants.length < maxNumberOfParticipants,
+            "Participant limit reached"
+        );
+        question.isParticipant[_participant] = true;
         question.participants.push(_participant);
         for (uint i = 0; i < _answers.length; i++) {
             question.answers[_participant][i] = _answers[i];
@@ -76,29 +100,83 @@ contract Survey {
         }
     }
 
-    function requestReview() external {
-        question.reviewers[msg.sender] = true;
+    /**
+     * @dev function to request a review
+     * @notice has be called before answer can be reviewed/currently possible to surpass review limit, so might be able to request but not able to answer
+     */
+    function requestReview(address _reviewer) external {
+        require(stage == Stage.Review, "Survey not in review stage");
+        require(!question.rAssigned[_reviewer], "Already assigned");
+        question.rAssigned[_reviewer] = true;
         uint idxParticipant = randomNumber(question.underReview.length);
-        question.reviewAssigned[msg.sender] = question.underReview[
+        question.reviewAssigned[_reviewer] = question.underReview[
             idxParticipant
         ];
     }
 
+    /**
+     * @dev function to submit review
+     * @param _reviewer address of the reviewer
+     * @param _vote vote decision
+     */
     function reviewAnswers(address _reviewer, Vote _vote) external {
-        require(!question.reviewed[_reviewer], "Already reviewed");
+        require(stage == Stage.Review, "Survey not in review stage");
         address participant = question.reviewAssigned[_reviewer];
-        question.reviewed[_reviewer] = true;
+        require(
+            !question.participantReviewed[participant],
+            "Maximum number of reviews already reached for the participant"
+        );
         question.votesReview[participant][_vote].push(_reviewer);
         question.numberParticipentReviewed[participant] += 1;
         if (question.numberParticipentReviewed[participant] >= reviewsNeeded) {
+            question.participantReviewed[participant] = true;
             reviewParticipantFinished(participant);
             completeReviewParticipant(participant);
         }
     }
 
+    /**
+     * @notice function to get the earings of an address
+     * @param _beneficiary beneficiary earnings
+     */
     function calculateEarnings(
         address _beneficiary
-    ) external view returns (uint earnings) {}
+    ) external view returns (uint earnings) {
+        if(question.isParticipant[_beneficiary]){ 
+            return participantResult[participantResult];
+        }
+        else if(){}
+        else {
+            return 0;
+        }
+    }
+
+    function calculateEarningsReviewer(
+        uint group //0 = hit, 1 = next
+    ) internal view returns (uint earnings) {
+        uint amountPerReviewer = capitalReview /
+            (question.hitReview + ((30 * question.nextReview) / 100));
+        if (group == 0) {
+            return amountPerReviewer;
+        } else {
+            return (amountPerReviewer * 30) / 100;
+        }
+    }
+
+    function calculateEarningsParticipant(
+        uint group //0 = Excellent, 1 = Good, 2 = Average
+    ) internal view returns (uint earnings) {
+        uint amountPerParticipant = capitalParticipants /
+            ((question.excellent + ((50 * question.good) / 100)) +
+                ((20 * question.average) / 100));
+        if (group == 0) {
+            return amountPerParticipant;
+        } else if (group == 1) {
+            return (amountPerParticipant * 50) / 100;
+        } else {
+            return (amountPerParticipant * 20) / 100;
+        }
+    }
 
     function viewAnswers(
         address _participant,
@@ -154,10 +232,13 @@ contract Survey {
 
         if (totalPoints >= ((reviewsNeeded * 35) / 10)) {
             calcResult = Vote.Excellent;
+            question.excellent++;
         } else if (totalPoints >= ((reviewsNeeded * 25) / 10)) {
             calcResult = Vote.Good;
+            question.good++;
         } else if (totalPoints >= ((reviewsNeeded * 15) / 10)) {
             calcResult = Vote.Average;
+            question.average++;
         } else if (totalPoints >= ((reviewsNeeded * 5) / 10)) {
             calcResult = Vote.Fair;
         } else {
