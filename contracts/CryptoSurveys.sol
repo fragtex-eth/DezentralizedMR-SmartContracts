@@ -3,11 +3,11 @@ pragma solidity ^0.8.16;
 
 contract Survey {
     enum Vote {
-        Poor, //0
+        Poor,
         Fair,
-        Average, //10
+        Average,
         Good,
-        Excellent //4
+        Excellent
     }
     enum Stage {
         Answer,
@@ -48,9 +48,8 @@ contract Survey {
     uint256 public deadlineTime;
     uint256 public capitalParticipants;
     uint256 public capitalReview;
-    bool internal questionsSet = false;
     uint256 internal randNonce = 0;
-    uint256 internal difference = 1;
+    uint256 internal constant DIFFERENCE = 1;
 
     constructor(
         string[] memory _questions,
@@ -78,10 +77,7 @@ contract Survey {
         string[] calldata _answers,
         address _participant
     ) external {
-        require(
-            question.isParticipant[_participant] == false,
-            "Already answerde"
-        );
+        require(!question.isParticipant[_participant], "Already answerde");
         require(
             _answers.length == question.questions.length,
             "Number of answers have to be equal to the number of questions"
@@ -242,7 +238,7 @@ contract Survey {
     function validateReviewer(
         address _participant
     ) internal returns (uint result) {
-        uint totalPoints;
+        uint totalPoints = 0;
         for (uint i = 0; i < 5; i++) {
             totalPoints = (question.votesReview[_participant][Vote(i)].length *
                 i);
@@ -274,7 +270,7 @@ contract Survey {
         uint8 idx = uint8(_result);
 
         for (uint i = 0; i < 5; i++) {
-            if (i - idx == difference || idx - i == difference) {
+            if (i - idx == DIFFERENCE || idx - i == DIFFERENCE) {
                 question.nextReview += question
                 .votesReview[_participant][Vote(i)].length;
             }
@@ -295,6 +291,10 @@ contract Survey {
         }
     }
 
+    /**
+     * @notice PRNG, could be manipulated theoretically hower in this case would not have a big impact as it would only have a minimum impact on the result.
+     * @param _modulus Range of random number
+     */
     function randomNumber(uint _modulus) internal virtual returns (uint) {
         randNonce++;
         return
