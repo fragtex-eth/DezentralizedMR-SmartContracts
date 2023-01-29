@@ -27,13 +27,15 @@ contract Survey {
         uint good;
         uint average; // Number of Reviewers that made the correct choice
         mapping(address => bool) isParticipant; //If address is participant
+        mapping(address => bool) isReviewer; //If address is participant
         mapping(address => uint) idxUnderReview; //Indexin the UnderReview array of specific addresses
         mapping(address => bool) participantReviewed; //Address has been reviewed
         mapping(address => mapping(uint => string)) answers; //Given answers by the participants
         mapping(address => Vote) participantResult; //Result of the
+        mapping(address => Vote) reviewVote;
         mapping(address => address[]) assignedReview;
         mapping(address => address) reviewAssigned; //Links Reviewee to participant that is assigned to him
-        mapping(address => uint) resultReview; // Result of reviewer in uint;
+        mapping(address => uint) resultReview; // Result of participant in uint;
         mapping(address => mapping(Vote => address[])) votesReview; //Participant mapping to each of the choices the reviewers took
         mapping(address => uint) numberParticipentReviewed; //Number of times a reviewer has been reviewed
         mapping(address => bool) rAssigned; //Participant has been assigned to reviewre
@@ -128,6 +130,8 @@ contract Survey {
         );
         question.votesReview[participant][_vote].push(_reviewer);
         question.numberParticipentReviewed[participant] += 1;
+        question.reviewVote[_reviewer] = _vote;
+        question.isReviewer[_reviewer] = true;
         if (question.numberParticipentReviewed[participant] >= reviewsNeeded) {
             question.participantReviewed[participant] = true;
             reviewParticipantFinished(participant);
@@ -142,24 +146,40 @@ contract Survey {
     function calculateEarnings(
         address _beneficiary
     ) external view returns (uint earnings) {
-        if(question.isParticipant[_beneficiary]){ 
-            return participantResult[participantResult];
-        }
-        else if(){}
-        else {
+        if (question.isParticipant[_beneficiary]) {
+            return
+                calculateEarningsParticipant(
+                    getIntVote(question.participantResult[_beneficiary])
+                );
+        } else if (question.isReviewer[_beneficiary]) {
+            uint uintVote = getIntVote(question.reviewVote[_beneficiary]);
+            address participantReviewed = question.reviewAssigned[_beneficiary];
+            uint uintResult = getIntVote(
+                question.participantResult[participantReviewed]
+            );
+            if (uintVote >= uintResult) {
+                return calculateEarningsReviewer(uintVote - uintResult);
+            } else {
+                return calculateEarningsReviewer(uintResult - uintVote);
+            }
+        } else {
             return 0;
         }
     }
 
     function calculateEarningsReviewer(
-        uint group //0 = hit, 1 = next
+        uint group //4 = hit, 3 = next, 2 = average
     ) internal view returns (uint earnings) {
         uint amountPerReviewer = capitalReview /
             (question.hitReview + ((30 * question.nextReview) / 100));
-        if (group == 0) {
+        if (group == 4) {
             return amountPerReviewer;
+        } else if (group == 3) {
+            return (amountPerReviewer * 50) / 100;
+        } else if (group == 2) {
+            return (amountPerReviewer * 20) / 100;
         } else {
-            return (amountPerReviewer * 30) / 100;
+            return 0;
         }
     }
 
@@ -258,6 +278,20 @@ contract Survey {
                 question.nextReview += question
                 .votesReview[_participant][Vote(i)].length;
             }
+        }
+    }
+
+    function getIntVote(Vote votes) internal pure returns (uint _vote) {
+        if (votes == Vote.Excellent) {
+            return 4;
+        } else if (votes == Vote.Good) {
+            return 3;
+        } else if (votes == Vote.Average) {
+            return 2;
+        } else if (votes == Vote.Fair) {
+            return 1;
+        } else if (votes == Vote.Poor) {
+            return 0;
         }
     }
 
