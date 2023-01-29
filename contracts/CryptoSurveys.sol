@@ -164,15 +164,15 @@ contract Survey {
     }
 
     function calculateEarningsReviewer(
-        uint group //4 = hit, 3 = next, 2 = average
+        uint _group //4 = hit, 3 = next, 2 = average
     ) internal view returns (uint earnings) {
         uint amountPerReviewer = capitalReview /
             (question.hitReview + ((30 * question.nextReview) / 100));
-        if (group == 4) {
+        if (_group == 4) {
             return amountPerReviewer;
-        } else if (group == 3) {
+        } else if (_group == 3) {
             return (amountPerReviewer * 50) / 100;
-        } else if (group == 2) {
+        } else if (_group == 2) {
             return (amountPerReviewer * 20) / 100;
         } else {
             return 0;
@@ -180,14 +180,14 @@ contract Survey {
     }
 
     function calculateEarningsParticipant(
-        uint group //0 = Excellent, 1 = Good, 2 = Average
+        uint _group //0 = Excellent, 1 = Good, 2 = Average
     ) internal view returns (uint earnings) {
         uint amountPerParticipant = capitalParticipants /
             ((question.excellent + ((50 * question.good) / 100)) +
                 ((20 * question.average) / 100));
-        if (group == 0) {
+        if (_group == 0) {
             return amountPerParticipant;
-        } else if (group == 1) {
+        } else if (_group == 1) {
             return (amountPerParticipant * 50) / 100;
         } else {
             return (amountPerParticipant * 20) / 100;
@@ -277,16 +277,16 @@ contract Survey {
         }
     }
 
-    function getIntVote(Vote votes) internal pure returns (uint _vote) {
-        if (votes == Vote.Excellent) {
+    function getIntVote(Vote _votes) internal pure returns (uint _vote) {
+        if (_votes == Vote.Excellent) {
             return 4;
-        } else if (votes == Vote.Good) {
+        } else if (_votes == Vote.Good) {
             return 3;
-        } else if (votes == Vote.Average) {
+        } else if (_votes == Vote.Average) {
             return 2;
-        } else if (votes == Vote.Fair) {
+        } else if (_votes == Vote.Fair) {
             return 1;
-        } else if (votes == Vote.Poor) {
+        } else if (_votes == Vote.Poor) {
             return 0;
         }
     }
