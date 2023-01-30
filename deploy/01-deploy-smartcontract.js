@@ -1,12 +1,19 @@
 const { network } = require("hardhat");
 const { developmentChains } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
+const { surveyConfig } = require("../hardhat-token-config");
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  args = [];
+  args = [
+    surveyConfig.questions,
+    surveyConfig.maxNumberOfParticipants,
+    surveyConfig.endTime,
+    surveyConfig.reviewsNeeded,
+    surveyConfig.capital,
+  ];
 
   const token = await deploy("Survey", {
     from: deployer,

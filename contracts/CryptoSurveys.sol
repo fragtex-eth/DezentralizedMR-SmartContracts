@@ -43,9 +43,10 @@ contract Survey {
 
     Stage internal stage;
     Question internal question;
+    string[] public questions;
     uint256 public maxNumberOfParticipants;
     uint256 public reviewsNeeded;
-    uint256 public deadlineTime;
+    uint256 public endTime;
     uint256 public capitalParticipants;
     uint256 public capitalReview;
     uint256 internal randNonce = 0;
@@ -59,11 +60,12 @@ contract Survey {
         uint256 _capital
     ) {
         question.questions = _questions;
+        questions = _questions;
         maxNumberOfParticipants = _participants;
-        deadlineTime = _endTime;
+        endTime = _endTime;
         stage = Stage.Answer;
         reviewsNeeded = _reviewNeeded;
-        capitalParticipants = (_capital * 100) / 70;
+        capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
     }
 
@@ -77,6 +79,7 @@ contract Survey {
         string[] calldata _answers,
         address _participant
     ) external {
+        //only be called by owner change after test
         require(!question.isParticipant[_participant], "Already answerde");
         require(
             _answers.length == question.questions.length,
