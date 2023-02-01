@@ -53,6 +53,9 @@ const { surveyConfig } = require("../../hardhat-token-config");
               (surveyConfig.capital * 70) / 100
             );
           });
+          it("Stage is correctly set", async function () {
+            expect(await tokenContract.stage()).to.equal(0);
+          });
         });
         describe("Answer Stage", function () {
           describe("Answer question", function () {
@@ -64,13 +67,121 @@ const { surveyConfig } = require("../../hardhat-token-config");
                 )
               ).to.not.be.reverted;
             });
-            it("Should be reverted with participant already answered the question", async function () {
+            it("Should be reverted when requirements are not met", async function () {
+              await tokenContractAlice.answerQuestions(
+                surveyConfig.answers1,
+                alice.address
+              );
               await expect(
                 tokenContractAlice.answerQuestions(
                   surveyConfig.answers1,
                   alice.address
                 )
-              ).to.not.be.reverted;
+              ).to.be.revertedWith("Already answered");
+              await expect(
+                tokenContractAlice.answerQuestions(["1", "2", "3"], bob.address)
+              ).to.be.revertedWith(
+                "Number of answers have to be equal to the number of questions"
+              );
+              accounts = await ethers.getSigners();
+              for (var i = 1; i < surveyConfig.maxNumberOfParticipants; i++) {
+                let participant = ethers.Wallet.createRandom();
+                tokenContractAlice.answerQuestions(
+                  surveyConfig.answers2,
+                  participant.address
+                );
+              }
+              let newpart = ethers.Wallet.createRandom();
+              await expect(
+                tokenContract.answerQuestions(
+                  surveyConfig.answers2,
+                  newpart.address
+                )
+              ).to.be.revertedWith("Participant limit reached");
+            });
+          });
+          describe("Locked functions", function () {
+            it("Locked functions should be reverted", async function () {
+              await expect(tokenContract.viewAnswers(alice.address, 1)).to.be
+                .reverted;
+              await expect(tokenContract.getValidAnswers()).to.be.reverted;
+              await expect(tokenContract.requestReview(alice.address)).to.be
+                .reverted;
+              await expect(tokenContract.reviewAnswers(alice.address)).to.be
+                .reverted;
+            });
+          });
+        });
+        describe("Answer Stage", function () {
+          beforeEach(async () => {
+            //Answer all questions => Enter Stage
+            for (var i = 0; i < surveyConfig.maxNumberOfParticipants; i++) {
+              let newwallet = ethers.Wallet.createRandom();
+              await tokenContract.answerQuestions(
+                surveyConfig.answers1,
+                newwallet.address
+              );
+            }
+          });
+          describe("Initialization of the next stage", function () {
+            it("Stage change successful", async function () {
+              expect(await tokenContract.stage()).to.equal(1);
+            });
+          });
+          describe("requestReview", function () {
+            it("Reviews can requested if all requirements are met", async function () {
+              await expect(tokenContractAlice.requestReview(alice.address)).to
+                .not.be.reverted;
+            });
+            it("Reviews can't be requested if already requested", async function () {
+              tokenContractAlice.requestReview(alice.address);
+              await expect(
+                tokenContractAlice.requestReview(alice.address)
+              ).to.be.revertedWith("Already assigned");
+            });
+            it("Participant assigned to reviewee", async function () {
+              await tokenContractAlice.requestReview(alice.address);
+              const revieweeParticipant =
+                await tokenContractAlice.returnReviewParticipant(alice.address);
+              expect(tokenContractAlice.returnReviewParticipant(alice.address))
+                .to.not.be.reverted;
+            });
+            it("Able to return answers for the assigned reviewee", async function () {
+              await tokenContractAlice.requestReview(alice.address);
+              const revieweeParticipant =
+                await tokenContractAlice.returnReviewParticipant(alice.address);
+
+              for (let i = 0; i < 5; i++) {
+                let answers = await tokenContract.viewAnswers(
+                  revieweeParticipant,
+                  i
+                );
+                await expect(answers).to.equal(surveyConfig.answers1[i]);
+              }
+            });
+          });
+          describe("reviewAnswers", function () {
+            beforeEach(async () => {
+              await tokenContractAlice.requestReview(alice.address);
+              const revieweeParticipantAlice =
+                await tokenContractAlice.returnReviewParticipant(alice.address);
+            });
+            it("Should not be returned all requirements are met", async function () {
+              await expect(tokenContract.reviewAnswers(alice.address, 1)).to.not
+                .be.reverted;
+            });
+            it("should be able to do all reviews", async function () {
+              for (
+                var i = 0;
+                i <
+                surveyConfig.maxNumberOfParticipants *
+                  surveyConfig.reviewsNeeded;
+                i++
+              ) {
+                let newWallet = ethers.Wallet.createRandom();
+                await tokenContract.requestReview(newWallet.address);
+                await tokenContract.reviewAnswers(newWallet.address, 1);
+              }
             });
           });
         });

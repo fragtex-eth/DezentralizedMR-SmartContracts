@@ -94,3 +94,7 @@ Options:
 2. Only verified users can participate
 3. Picture if most votes wins after the time period and voters receive rewards
 4. Distribution of Results and money
+
+#### Ideas:
+
+Make sure questions are not submitted twice

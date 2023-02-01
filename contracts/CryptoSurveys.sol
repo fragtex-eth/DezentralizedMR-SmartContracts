@@ -1,3 +1,4 @@
+import "hardhat/console.sol";
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
@@ -41,7 +42,7 @@ contract Survey {
         mapping(address => bool) rAssigned; //Participant has been assigned to reviewre
     }
 
-    Stage internal stage;
+    Stage public stage;
     Question internal question;
     string[] public questions;
     uint256 public maxNumberOfParticipants;
@@ -80,7 +81,7 @@ contract Survey {
         address _participant
     ) external {
         //only be called by owner change after test
-        require(!question.isParticipant[_participant], "Already answerde");
+        require(!question.isParticipant[_participant], "Already answered");
         require(
             _answers.length == question.questions.length,
             "Number of answers have to be equal to the number of questions"
@@ -93,9 +94,9 @@ contract Survey {
         question.participants.push(_participant);
         for (uint i = 0; i < _answers.length; i++) {
             question.answers[_participant][i] = _answers[i];
-            question.idxUnderReview[_participant] = question.underReview.length;
-            question.underReview.push(_participant);
         }
+        question.idxUnderReview[_participant] = question.underReview.length;
+        question.underReview.push(_participant);
         if (question.participants.length >= maxNumberOfParticipants) {
             stage = Stage.Review;
         }
@@ -105,7 +106,7 @@ contract Survey {
      * @dev function to request a review
      * @notice has be called before answer can be reviewed/currently possible to surpass review limit, so might be able to request but not able to answer
      */
-    function requestReview(address _reviewer) external {
+    function requestReview(address _reviewer) external returns (address) {
         require(stage == Stage.Review, "Survey not in review stage");
         require(!question.rAssigned[_reviewer], "Already assigned");
         question.rAssigned[_reviewer] = true;
@@ -113,6 +114,21 @@ contract Survey {
         question.reviewAssigned[_reviewer] = question.underReview[
             idxParticipant
         ];
+        require(
+            !question.participantReviewed[question.underReview[idxParticipant]],
+            "Wrongly assigned"
+        );
+        return question.reviewAssigned[_reviewer];
+    }
+
+    /**
+     * @notice Return the participant that is assigned to the reviewer
+     * @param _reviewer address of the reviewer
+     */
+    function returnReviewParticipant(
+        address _reviewer
+    ) external view returns (address) {
+        return question.reviewAssigned[_reviewer];
     }
 
     /**
@@ -145,6 +161,7 @@ contract Survey {
     function calculateEarnings(
         address _beneficiary
     ) external view returns (uint earnings) {
+        require(stage == Stage.Completed);
         if (question.isParticipant[_beneficiary]) {
             return
                 calculateEarningsParticipant(
@@ -201,7 +218,7 @@ contract Survey {
         address _participant,
         uint _questionNr
     ) external view returns (string memory) {
-        require(stage == Stage.Completed);
+        require(stage == Stage.Completed || stage == Stage.Review);
         return question.answers[_participant][_questionNr];
     }
 
@@ -224,15 +241,17 @@ contract Survey {
     }
 
     function reviewParticipantFinished(address _participant) internal {
-        uint idxPartipant = question.idxUnderReview[_participant];
-        if (idxPartipant < question.underReview.length - 1) {
+        uint idxParticipant = question.idxUnderReview[_participant];
+        if (idxParticipant < (question.underReview.length - 1)) {
             address lastParticipant = question.underReview[
                 question.underReview.length - 1
             ];
-            question.underReview[idxPartipant] = lastParticipant;
-            question.idxUnderReview[lastParticipant] = idxPartipant;
+            question.idxUnderReview[lastParticipant] = idxParticipant;
+            question.underReview[idxParticipant] = lastParticipant;
         }
+
         question.underReview.pop();
+
         if (question.underReview.length == 0) {
             stage = Stage.Completed;
         }
@@ -273,7 +292,13 @@ contract Survey {
         uint8 idx = uint8(_result);
 
         for (uint i = 0; i < 5; i++) {
-            if (i - idx == DIFFERENCE || idx - i == DIFFERENCE) {
+            uint diff;
+            if (i > idx) {
+                diff = i - idx;
+            } else {
+                diff = idx - i;
+            }
+            if (diff == DIFFERENCE) {
                 question.nextReview += question
                 .votesReview[_participant][Vote(i)].length;
             }
