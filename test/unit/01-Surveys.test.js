@@ -66,6 +66,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
                   alice.address
                 )
               ).to.not.be.reverted;
+              expect(await tokenContract.getStage()).to.equal(0);
             });
             it("Should be reverted when requirements are not met", async function () {
               await tokenContractAlice.answerQuestions(
@@ -190,11 +191,12 @@ const { surveyConfig } = require("../../hardhat-token-config");
               await expect(
                 tokenContract.requestReview(newWallet.address)
               ).to.be.revertedWith("Survey not in review stage");
+              expect(await tokenContract.getStage()).to.equal(1);
             });
           });
         });
         describe.only("Final Stage", function () {
-          let address1, address2, address3, address4;
+          let address, address1, address2, address3, address4, address5;
           let correctAnswersArray;
           beforeEach(async () => {
             //Answer all questions => Enter Stage
@@ -205,7 +207,6 @@ const { surveyConfig } = require("../../hardhat-token-config");
                 newwallet.address
               );
             }
-            let address;
 
             let newWallet = ethers.Wallet.createRandom();
             await tokenContract.requestReview(newWallet.address);
@@ -282,18 +283,17 @@ const { surveyConfig } = require("../../hardhat-token-config");
               if (reviewedParticipant == address1) {
                 answer = answers.s1.answerArray[answers.s1.count];
                 answers.s1.count++;
-              }
-              if (reviewedParticipant == address2) {
+              } else if (reviewedParticipant == address2) {
                 answer = answers.s2.answerArray[answers.s2.count];
                 answers.s2.count++;
-              }
-              if (reviewedParticipant == address3) {
+              } else if (reviewedParticipant == address3) {
                 answer = answers.s3.answerArray[answers.s3.count];
                 answers.s3.count++;
-              }
-              if (reviewedParticipant == address4) {
+              } else if (reviewedParticipant == address4) {
                 answer = answers.s4.answerArray[answers.s4.count];
                 answers.s4.count++;
+              } else {
+                address5 = reviewedParticipant;
               }
               await tokenContract.reviewAnswers(newWallet.address, answer);
               answer = 4;
@@ -330,9 +330,24 @@ const { surveyConfig } = require("../../hardhat-token-config");
             //Participant
             expect(await tokenContract.calculateEarnings(address1)).to.equal(0);
             expect(await tokenContract.calculateEarnings(address2)).to.equal(0);
-            expect(await tokenContract.calculateEarnings(address3)).to.equal(
-              surveyConfig.capital
+            //Earnings participant:
+            let particpantsAmount = (surveyConfig.capital * 30) / 100;
+            let amountExcellent = parseInt(
+              await tokenContract.calculateEarnings(address5)
             );
+            let amountGood = parseInt(
+              await tokenContract.calculateEarnings(address4)
+            );
+            let amountAvg = parseInt(
+              await tokenContract.calculateEarnings(address3)
+            );
+            expect(amountExcellent).to.be.greaterThan(amountGood);
+            expect(amountGood).to.be.greaterThan(amountAvg);
+            expect(
+              amountExcellent * 6 + amountGood * 1 + amountAvg * 1
+            ).to.be.approximately(particpantsAmount, 100);
+
+            expect(await tokenContract.getStage()).to.equal(2);
           });
         });
       });

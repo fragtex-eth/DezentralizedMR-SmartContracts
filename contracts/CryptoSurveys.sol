@@ -180,6 +180,18 @@ contract Survey {
         }
     }
 
+    function getStage() external view returns (uint currentStage) {
+        if (stage == Stage.Answer) {
+            return 0;
+        }
+        if (stage == Stage.Review) {
+            return 1;
+        }
+        if (stage == Stage.Completed) {
+            return 2;
+        }
+    }
+
     function calculateEarningsReviewer(
         uint _group //4 = hit, 3 = next, 2 = average
     ) internal view returns (uint earnings) {
@@ -200,14 +212,16 @@ contract Survey {
         uint _group //4 = Excellent, 3 = Good, 2 = Average
     ) internal view returns (uint earnings) {
         uint amountPerParticipant = capitalParticipants /
-            ((question.excellent + ((50 * question.good) / 100)) +
-                ((20 * question.average) / 100));
+            ((4 * question.excellent) +
+                (2 * question.good) +
+                (question.average));
+        //not divisible amount will stay on the contract
         if (_group == 4) {
-            return amountPerParticipant;
+            return 4 * amountPerParticipant;
         } else if (_group == 3) {
-            return (amountPerParticipant * 50) / 100;
+            return 2 * amountPerParticipant;
         } else if (_group == 2) {
-            return (amountPerParticipant * 20) / 100;
+            return amountPerParticipant;
         } else {
             return 0;
         }
