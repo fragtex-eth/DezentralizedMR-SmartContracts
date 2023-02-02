@@ -113,7 +113,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
             });
           });
         });
-        describe("Answer Stage", function () {
+        describe("Review Stage", function () {
           beforeEach(async () => {
             //Answer all questions => Enter Stage
             for (var i = 0; i < surveyConfig.maxNumberOfParticipants; i++) {
@@ -167,6 +167,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
                 await tokenContractAlice.returnReviewParticipant(alice.address);
             });
             it("Should not be returned all requirements are met", async function () {
+              expect(await tokenContract.getStage()).to.equal(1);
               await expect(tokenContract.reviewAnswers(alice.address, 1)).to.not
                 .be.reverted;
             });
@@ -191,11 +192,10 @@ const { surveyConfig } = require("../../hardhat-token-config");
               await expect(
                 tokenContract.requestReview(newWallet.address)
               ).to.be.revertedWith("Survey not in review stage");
-              expect(await tokenContract.getStage()).to.equal(1);
             });
           });
         });
-        describe.only("Final Stage", function () {
+        describe("Final Stage", function () {
           let address, address1, address2, address3, address4, address5;
           let correctAnswersArray;
           beforeEach(async () => {

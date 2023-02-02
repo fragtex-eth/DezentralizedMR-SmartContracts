@@ -85,11 +85,11 @@ module.exports = {
   },
   gasReporter: {
     enabled: REPORT_GAS,
-    currency: "BNB",
+    currency: "usd",
     outputFile: "gas-report.txt",
     noColors: true,
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    token: "BNB",
+    token: "MATIC",
   },
 
   namedAccounts: {
