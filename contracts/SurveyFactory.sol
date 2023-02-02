@@ -5,14 +5,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./SurveyUpgradable.sol";
 
-contract SurveyFactory is Ownable {
+contract SurveyFactory is SurveyUpgradable {
     address public surveyImplementation;
 
     address[] public allSurveys;
     mapping(address => uint) public indexOfSurvey;
 
-    constructor(address surveyImplementation) public {
-        surveyImplementation = address(surveyImplementation);
+    constructor(address _surveyImplementation) {
+        surveyImplementation = _surveyImplementation;
     }
 
     function createSurvey(
@@ -22,7 +22,6 @@ contract SurveyFactory is Ownable {
         uint256 _reviewNeeded,
         uint256 _capital
     ) external returns (address survey) {
-        address clone = Clones.clone(surveyImplementation);
         bytes32 salt = keccak256(
             abi.encodePacked(_participants, _endTime, _reviewNeeded, _capital)
         );
