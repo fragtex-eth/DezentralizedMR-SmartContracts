@@ -46,11 +46,11 @@ contract Survey is Ownable {
     Stage public stage;
     Question internal question;
     string[] public questions;
-    uint256 public maxNumberOfParticipants;
-    uint256 public reviewsNeeded;
-    uint256 public endTime;
-    uint256 public capitalParticipants;
-    uint256 public capitalReview;
+    uint256 public maxNumberOfParticipants; //maximal number of participants
+    uint256 public reviewsNeeded; //number of reviews per participant
+    uint256 public endTime; //EndTime when survey can be closed
+    uint256 public capitalParticipants; //Capital assigned for the participants
+    uint256 public capitalReview; //Capital assigned for the reviewers
     uint256 internal randNonce = 0;
     uint256 internal constant DIFFERENCE = 1;
 
@@ -185,6 +185,17 @@ contract Survey is Ownable {
         }
     }
 
+    /**
+     * Close survey manully in case there are not enough participants
+     */
+    function closeSurvey() external onlyOwner {
+        require(stage != Stage.Completed);
+        stage = Stage.Completed;
+    }
+
+    /**
+     * Function that returns the current stage
+     */
     function getStage() external view onlyOwner returns (uint currentStage) {
         if (stage == Stage.Answer) {
             return 0;
@@ -244,6 +255,7 @@ contract Survey is Ownable {
      * @param _to address where the potential contract money will be send to
      */
     function deleteSurvey(address payable _to) external onlyOwner {
+        require(stage == Stage.Completed);
         selfdestruct(_to);
     }
 
