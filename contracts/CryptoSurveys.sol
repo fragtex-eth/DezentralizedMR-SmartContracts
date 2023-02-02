@@ -1,8 +1,9 @@
-import "hardhat/console.sol";
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-contract Survey {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract Survey is Ownable {
     enum Vote {
         Poor,
         Fair,
@@ -53,6 +54,8 @@ contract Survey {
     uint256 internal randNonce = 0;
     uint256 internal constant DIFFERENCE = 1;
 
+    event StageChanged(Stage);
+
     constructor(
         string[] memory _questions,
         uint256 _participants,
@@ -68,6 +71,7 @@ contract Survey {
         reviewsNeeded = _reviewNeeded;
         capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
+        emit StageChanged(stage);
     }
 
     /**
@@ -99,6 +103,7 @@ contract Survey {
         question.underReview.push(_participant);
         if (question.participants.length >= maxNumberOfParticipants) {
             stage = Stage.Review;
+            emit StageChanged(stage);
         }
     }
 
@@ -156,7 +161,7 @@ contract Survey {
      */
     function calculateEarnings(
         address _beneficiary
-    ) external view returns (uint earnings) {
+    ) external view onlyOwner returns (uint earnings) {
         require(stage == Stage.Completed);
 
         if (question.isParticipant[_beneficiary]) {
@@ -180,7 +185,7 @@ contract Survey {
         }
     }
 
-    function getStage() external view returns (uint currentStage) {
+    function getStage() external view onlyOwner returns (uint currentStage) {
         if (stage == Stage.Answer) {
             return 0;
         }
@@ -208,6 +213,40 @@ contract Survey {
         }
     }
 
+    /**
+     * View an answer of a participant
+     * @param _participant address of participant
+     * @param _questionNr index of address (0-4)
+     */
+    function viewAnswers(
+        address _participant,
+        uint _questionNr
+    ) external view returns (string memory) {
+        require(stage == Stage.Completed || stage == Stage.Review);
+        return question.answers[_participant][_questionNr];
+    }
+
+    /**
+     * Functon that returns valid answers
+     */
+    function getValidAnswers()
+        external
+        view
+        onlyOwner
+        returns (address[] memory)
+    {
+        require(stage == Stage.Completed);
+        return question.validAnswers;
+    }
+
+    /**
+     * Functon to delete the SmartContract
+     * @param _to address where the potential contract money will be send to
+     */
+    function deleteSurvey(address payable _to) external onlyOwner {
+        selfdestruct(_to);
+    }
+
     function calculateEarningsParticipant(
         uint _group //4 = Excellent, 3 = Good, 2 = Average
     ) internal view returns (uint earnings) {
@@ -227,14 +266,6 @@ contract Survey {
         }
     }
 
-    function viewAnswers(
-        address _participant,
-        uint _questionNr
-    ) external view returns (string memory) {
-        require(stage == Stage.Completed || stage == Stage.Review);
-        return question.answers[_participant][_questionNr];
-    }
-
     function completeReviewParticipant(address _participant) internal {
         question.resultReview[_participant] = validateReviewer(_participant);
         if (question.resultReview[_participant] > ((reviewsNeeded * 15) / 10)) {
@@ -246,11 +277,6 @@ contract Survey {
             _participant,
             question.participantResult[_participant]
         );
-    }
-
-    function getValidAnswers() external view returns (address[] memory) {
-        require(stage == Stage.Completed);
-        return question.validAnswers;
     }
 
     function reviewParticipantFinished(address _participant) internal {
@@ -267,6 +293,7 @@ contract Survey {
 
         if (question.underReview.length == 0) {
             stage = Stage.Completed;
+            emit StageChanged(stage);
         }
     }
 
