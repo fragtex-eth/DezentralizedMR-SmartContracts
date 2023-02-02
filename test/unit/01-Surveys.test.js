@@ -141,8 +141,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
             });
             it("Participant assigned to reviewee", async function () {
               await tokenContractAlice.requestReview(alice.address);
-              const revieweeParticipant =
-                await tokenContractAlice.returnReviewParticipant(alice.address);
+
               expect(tokenContractAlice.returnReviewParticipant(alice.address))
                 .to.not.be.reverted;
             });
@@ -170,7 +169,12 @@ const { surveyConfig } = require("../../hardhat-token-config");
               await expect(tokenContract.reviewAnswers(alice.address, 1)).to.not
                 .be.reverted;
             });
-            it("should be able to do all reviews", async function () {
+            it("Should be returned if particpant requests a second time", async function () {
+              await expect(
+                tokenContract.requestReview(alice.address)
+              ).to.be.revertedWith("Already assigned");
+            });
+            it("should be able to do all reviews and then go to the next stage", async function () {
               for (
                 var i = 0;
                 i <
@@ -182,7 +186,153 @@ const { surveyConfig } = require("../../hardhat-token-config");
                 await tokenContract.requestReview(newWallet.address);
                 await tokenContract.reviewAnswers(newWallet.address, 1);
               }
+              let newWallet = ethers.Wallet.createRandom();
+              await expect(
+                tokenContract.requestReview(newWallet.address)
+              ).to.be.revertedWith("Survey not in review stage");
             });
+          });
+        });
+        describe.only("Final Stage", function () {
+          let address1, address2, address3, address4;
+          let correctAnswersArray;
+          beforeEach(async () => {
+            //Answer all questions => Enter Stage
+            for (var i = 0; i < surveyConfig.maxNumberOfParticipants; i++) {
+              let newwallet = ethers.Wallet.createRandom();
+              await tokenContract.answerQuestions(
+                surveyConfig.answers1,
+                newwallet.address
+              );
+            }
+            let address;
+
+            let newWallet = ethers.Wallet.createRandom();
+            await tokenContract.requestReview(newWallet.address);
+            address1 = await tokenContract.returnReviewParticipant(
+              newWallet.address
+            );
+            while (true) {
+              newWallet = ethers.Wallet.createRandom();
+              await tokenContract.requestReview(newWallet.address);
+              address = await tokenContract.returnReviewParticipant(
+                newWallet.address
+              );
+              if (address !== address1) {
+                address2 = address;
+                break;
+              }
+            }
+            while (true) {
+              newWallet = ethers.Wallet.createRandom();
+              await tokenContract.requestReview(newWallet.address);
+              address = await tokenContract.returnReviewParticipant(
+                newWallet.address
+              );
+              if (address !== address1 && address !== address2) {
+                address3 = address;
+                break;
+              }
+            }
+            while (true) {
+              newWallet = ethers.Wallet.createRandom();
+              await tokenContract.requestReview(newWallet.address);
+              address = await tokenContract.returnReviewParticipant(
+                newWallet.address
+              );
+              if (
+                address !== address1 &&
+                address !== address2 &&
+                address !== address3
+              ) {
+                address4 = address;
+                break;
+              }
+            }
+
+            let answers = {
+              s1: {
+                count: 0,
+                answerArray: [0, 0, 0, 0, 0, 1, 0, 0, 0, 2], //3 Points = Poor
+              },
+              s2: {
+                count: 0,
+                answerArray: [0, 1, 1, 1, 2, 2, 1, 1, 3, 2], //14 Points = Fair,
+              },
+              s3: {
+                count: 0,
+                answerArray: [3, 2, 4, 3, 1, 1, 1, 4, 0, 1], //20 Points = Average
+              },
+              s4: {
+                count: 0,
+                answerArray: [4, 4, 3, 3, 3, 3, 2, 0, 4, 3], //33 Points = Good
+              },
+            };
+            answer = 4;
+            for (
+              var i = 0;
+              i <
+              surveyConfig.maxNumberOfParticipants * surveyConfig.reviewsNeeded;
+              i++
+            ) {
+              let newWallet = ethers.Wallet.createRandom();
+              await tokenContract.requestReview(newWallet.address);
+              let reviewedParticipant =
+                await tokenContract.returnReviewParticipant(newWallet.address);
+              if (reviewedParticipant == address1) {
+                answer = answers.s1.answerArray[answers.s1.count];
+                answers.s1.count++;
+              }
+              if (reviewedParticipant == address2) {
+                answer = answers.s2.answerArray[answers.s2.count];
+                answers.s2.count++;
+              }
+              if (reviewedParticipant == address3) {
+                answer = answers.s3.answerArray[answers.s3.count];
+                answers.s3.count++;
+              }
+              if (reviewedParticipant == address4) {
+                answer = answers.s4.answerArray[answers.s4.count];
+                answers.s4.count++;
+              }
+              await tokenContract.reviewAnswers(newWallet.address, answer);
+              answer = 4;
+            }
+          });
+          it("getValidAnswers", async function () {
+            await expect(tokenContract.getValidAnswers()).to.not.be.reverted;
+            correctAnswersArray = await tokenContract.getValidAnswers();
+            expect(correctAnswersArray.length).to.equal(8);
+            //Addresses that have a result of Average or higher are included in the final Answer array
+            expect(correctAnswersArray.includes(address1)).to.equal(false);
+            expect(correctAnswersArray.includes(address2)).to.equal(false);
+            expect(correctAnswersArray.includes(address3)).to.equal(true);
+            expect(correctAnswersArray.includes(address4)).to.equal(true);
+          });
+          it("viewAnswers", async function () {
+            expect(await tokenContract.viewAnswers(address3, 0)).to.equal(
+              surveyConfig.answers1[0]
+            );
+            expect(await tokenContract.viewAnswers(address4, 3)).to.equal(
+              surveyConfig.answers1[3]
+            );
+            expect(await tokenContract.viewAnswers(address4, 2)).to.equal(
+              surveyConfig.answers1[2]
+            );
+            expect(await tokenContract.viewAnswers(address2, 4)).to.equal(
+              surveyConfig.answers1[4]
+            );
+            expect(await tokenContract.viewAnswers(address2, 1)).to.equal(
+              surveyConfig.answers1[1]
+            );
+          });
+          it("calculateEarnings", async function () {
+            //Participant
+            expect(await tokenContract.calculateEarnings(address1)).to.equal(0);
+            expect(await tokenContract.calculateEarnings(address2)).to.equal(0);
+            expect(await tokenContract.calculateEarnings(address3)).to.equal(
+              surveyConfig.capital
+            );
           });
         });
       });

@@ -6,7 +6,7 @@ const surveyConfig = {
     "How do your target customers view your brand or product in comparison to your competitors?",
     "What are the top unmet needs or opportunities in this market that your product or service could fulfill?",
   ],
-  maxNumberOfParticipants: 30,
+  maxNumberOfParticipants: 10,
   endTime: 1675604149,
   reviewsNeeded: 10,
   capital: 100000,

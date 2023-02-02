@@ -114,10 +114,6 @@ contract Survey {
         question.reviewAssigned[_reviewer] = question.underReview[
             idxParticipant
         ];
-        require(
-            !question.participantReviewed[question.underReview[idxParticipant]],
-            "Wrongly assigned"
-        );
         return question.reviewAssigned[_reviewer];
     }
 
@@ -162,6 +158,7 @@ contract Survey {
         address _beneficiary
     ) external view returns (uint earnings) {
         require(stage == Stage.Completed);
+
         if (question.isParticipant[_beneficiary]) {
             return
                 calculateEarningsParticipant(
@@ -200,17 +197,19 @@ contract Survey {
     }
 
     function calculateEarningsParticipant(
-        uint _group //0 = Excellent, 1 = Good, 2 = Average
+        uint _group //4 = Excellent, 3 = Good, 2 = Average
     ) internal view returns (uint earnings) {
         uint amountPerParticipant = capitalParticipants /
             ((question.excellent + ((50 * question.good) / 100)) +
                 ((20 * question.average) / 100));
-        if (_group == 0) {
+        if (_group == 4) {
             return amountPerParticipant;
-        } else if (_group == 1) {
+        } else if (_group == 3) {
             return (amountPerParticipant * 50) / 100;
-        } else {
+        } else if (_group == 2) {
             return (amountPerParticipant * 20) / 100;
+        } else {
+            return 0;
         }
     }
 
@@ -262,7 +261,7 @@ contract Survey {
     ) internal returns (uint result) {
         uint totalPoints = 0;
         for (uint i = 0; i < 5; i++) {
-            totalPoints = (question.votesReview[_participant][Vote(i)].length *
+            totalPoints += (question.votesReview[_participant][Vote(i)].length *
                 i);
         }
         totalPoints = (totalPoints * 10) / reviewsNeeded;
