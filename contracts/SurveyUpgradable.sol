@@ -18,6 +18,7 @@ contract SurveyUpgradable is
         Excellent
     }
     enum Stage {
+        Question,
         Answer,
         Review,
         Completed
@@ -63,7 +64,6 @@ contract SurveyUpgradable is
     event StageChanged(Stage);
 
     function initialize(
-        string[] memory _questions,
         uint256 _participants,
         uint256 _endTime,
         uint256 _reviewNeeded,
@@ -71,19 +71,24 @@ contract SurveyUpgradable is
     ) external initializer onlyProxy {
         __Ownable_init();
         __UUPSUpgradeable_init();
-        question.questions = _questions;
-        questions = _questions;
         maxNumberOfParticipants = _participants;
         endTime = _endTime;
-        stage = Stage.Answer;
         reviewsNeeded = _reviewNeeded;
         capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
         randNonce = 0;
+        stage = Stage.Question;
         emit StageChanged(stage);
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function setQuestions(string[] memory _questions) external onlyOwner {
+        question.questions = _questions;
+        questions = _questions;
+        stage = Stage.Answer;
+        emit StageChanged(stage);
+    }
 
     /**
      * @dev Function to answer the question
@@ -208,14 +213,17 @@ contract SurveyUpgradable is
      * Function that returns the current stage
      */
     function getStage() external view onlyOwner returns (uint currentStage) {
-        if (stage == Stage.Answer) {
+        if (stage == Stage.Question) {
             return 0;
         }
-        if (stage == Stage.Review) {
+        if (stage == Stage.Answer) {
             return 1;
         }
-        if (stage == Stage.Completed) {
+        if (stage == Stage.Review) {
             return 2;
+        }
+        if (stage == Stage.Completed) {
+            return 3;
         }
     }
 

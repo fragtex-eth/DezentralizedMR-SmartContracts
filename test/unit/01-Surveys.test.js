@@ -13,7 +13,6 @@ const { surveyConfig } = require("../../hardhat-token-config");
         bob = accounts[2];
         charles = accounts[3];
         args = [
-          surveyConfig.questions,
           surveyConfig.maxNumberOfParticipants,
           surveyConfig.endTime,
           surveyConfig.reviewsNeeded,
@@ -26,6 +25,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
         tokenContractAlice = tokenContract.connect(alice);
         tokenContractBob = tokenContract.connect(bob);
         tokenContractCharles = tokenContract.connect(charles);
+        await tokenContract.setQuestions(surveyConfig.questions);
       });
       describe("Survey Test", function () {
         describe("Initalization()", function () {
@@ -61,7 +61,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
             );
           });
           it("Stage is correctly set", async function () {
-            expect(await tokenContract.stage()).to.equal(0);
+            expect(await tokenContract.stage()).to.equal(1);
           });
         });
         describe("Answer Stage", function () {
@@ -73,7 +73,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
                   alice.address
                 )
               ).to.not.be.reverted;
-              expect(await tokenContract.getStage()).to.equal(0);
+              expect(await tokenContract.getStage()).to.equal(1);
             });
             it("Should be reverted when requirements are not met", async function () {
               await tokenContractAlice.answerQuestions(
@@ -133,7 +133,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
           });
           describe("Initialization of the next stage", function () {
             it("Stage change successful", async function () {
-              expect(await tokenContract.stage()).to.equal(1);
+              expect(await tokenContract.stage()).to.equal(2);
             });
           });
           describe("requestReview", function () {
@@ -174,7 +174,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
                 await tokenContractAlice.returnReviewParticipant(alice.address);
             });
             it("Should not be returned all requirements are met", async function () {
-              expect(await tokenContract.getStage()).to.equal(1);
+              expect(await tokenContract.getStage()).to.equal(2);
               await expect(tokenContract.reviewAnswers(alice.address, 1)).to.not
                 .be.reverted;
             });
@@ -354,7 +354,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
               amountExcellent * 6 + amountGood * 1 + amountAvg * 1
             ).to.be.approximately(particpantsAmount, 100);
 
-            expect(await tokenContract.getStage()).to.equal(2);
+            expect(await tokenContract.getStage()).to.equal(3);
           });
         });
       });

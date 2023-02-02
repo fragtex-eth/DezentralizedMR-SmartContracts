@@ -8,7 +8,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer } = await getNamedAccounts();
 
   args = [
-    surveyConfig.questions,
     surveyConfig.maxNumberOfParticipants,
     surveyConfig.endTime,
     surveyConfig.reviewsNeeded,
