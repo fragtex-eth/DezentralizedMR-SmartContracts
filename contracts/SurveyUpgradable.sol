@@ -60,6 +60,7 @@ contract SurveyUpgradable is
     uint256 public capitalReview; //Capital assigned for the reviewers
     uint256 internal randNonce;
     uint256 internal constant DIFFERENCE = 1;
+    bool questionsSet; //If questions are already initalized
 
     event StageChanged(Stage);
 
@@ -84,6 +85,8 @@ contract SurveyUpgradable is
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function setQuestions(string[] memory _questions) external onlyOwner {
+        require(!questionsSet, "Questions already set");
+        questionsSet = true;
         question.questions = _questions;
         questions = _questions;
         stage = Stage.Answer;
