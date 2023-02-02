@@ -12,9 +12,16 @@ const { surveyConfig } = require("../../hardhat-token-config");
         alice = accounts[1];
         bob = accounts[2];
         charles = accounts[3];
-        await deployments.fixture(["all"]);
+        args = [
+          surveyConfig.questions,
+          surveyConfig.maxNumberOfParticipants,
+          surveyConfig.endTime,
+          surveyConfig.reviewsNeeded,
+          surveyConfig.capital,
+        ];
+        Survey = await await ethers.getContractFactory("SurveyUpgradable");
+        tokenContract = await upgrades.deployProxy(Survey, args);
 
-        tokenContract = await ethers.getContract("Survey");
         tokenContract = tokenContract.connect(deployer);
         tokenContractAlice = tokenContract.connect(alice);
         tokenContractBob = tokenContract.connect(bob);

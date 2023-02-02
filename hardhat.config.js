@@ -6,6 +6,7 @@ require("hardhat-gas-reporter");
 require("hardhat-contract-sizer");
 require("dotenv").config();
 require("@nomiclabs/hardhat-ethers");
+require("@openzeppelin/hardhat-upgrades");
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */

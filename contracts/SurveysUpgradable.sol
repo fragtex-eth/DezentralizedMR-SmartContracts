@@ -1,9 +1,15 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Survey is Ownable {
+contract SurveyUpgradable is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     enum Vote {
         Poor,
         Fair,
@@ -51,18 +57,20 @@ contract Survey is Ownable {
     uint256 public endTime; //EndTime when survey can be closed
     uint256 public capitalParticipants; //Capital assigned for the participants
     uint256 public capitalReview; //Capital assigned for the reviewers
-    uint256 internal randNonce = 0;
+    uint256 internal randNonce;
     uint256 internal constant DIFFERENCE = 1;
 
     event StageChanged(Stage);
 
-    constructor(
+    function initialize(
         string[] memory _questions,
         uint256 _participants,
         uint256 _endTime,
         uint256 _reviewNeeded,
         uint256 _capital
-    ) {
+    ) external initializer onlyProxy {
+        __Ownable_init();
+        __UUPSUpgradeable_init();
         question.questions = _questions;
         questions = _questions;
         maxNumberOfParticipants = _participants;
@@ -71,8 +79,11 @@ contract Survey is Ownable {
         reviewsNeeded = _reviewNeeded;
         capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
+        randNonce = 0;
         emit StageChanged(stage);
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @dev Function to answer the question
@@ -250,15 +261,6 @@ contract Survey is Ownable {
         return question.validAnswers;
     }
 
-    /**
-     * Functon to delete the SmartContract
-     * @param _to address where the potential contract money will be send to
-     */
-    function deleteSurvey(address payable _to) external onlyOwner {
-        require(stage == Stage.Completed);
-        selfdestruct(_to);
-    }
-
     function calculateEarningsParticipant(
         uint _group //4 = Excellent, 3 = Good, 2 = Average
     ) internal view returns (uint earnings) {
@@ -389,4 +391,7 @@ contract Survey is Ownable {
                 )
             ) % _modulus;
     }
+
+    //space for potential future variables
+    uint256[45] private __gap;
 }

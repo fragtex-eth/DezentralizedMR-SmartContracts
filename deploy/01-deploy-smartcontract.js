@@ -1,7 +1,7 @@
-const { network } = require("hardhat");
 const { developmentChains } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
 const { surveyConfig } = require("../hardhat-token-config");
+const { network, ethers, upgrades } = require("hardhat");
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
@@ -15,12 +15,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     surveyConfig.capital,
   ];
 
-  const token = await deploy("Survey", {
-    from: deployer,
-    args: args,
-    log: true,
-    waitConfirmations: network.config.waitConfirmations || 1,
-  });
+  const Survey = await ethers.getContractFactory("SurveyUpgradable");
+  const survey = await upgrades.deployProxy(Survey, args);
+  await survey.deployed();
+  console.log("Survey deployed to: ", survey.address);
 
   //   if (
   //     !developmentChains.includes(network.name) &&
