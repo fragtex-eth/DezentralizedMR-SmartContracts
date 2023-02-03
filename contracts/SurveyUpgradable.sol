@@ -4,11 +4,14 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "hardhat/console.sol";
 
 interface IFactorContract {
     function finishSuvery() external;
 
     function enterReviewSurvey() external;
+
+    function addSurveyCompleted(address _participant) external;
 }
 
 contract SurveyUpgradable is
@@ -105,12 +108,10 @@ contract SurveyUpgradable is
      * @dev Function to answer the question
      *
      * @param _answers Survey answers
-     * @param _participant Address participant
      */
-    function answerQuestions(
-        string[] calldata _answers,
-        address _participant
-    ) external {
+    function answerQuestions(string[] calldata _answers) external {
+        console.log(msg.sender);
+        address _participant = msg.sender;
         //only be called by owner change after test
         require(!question.isParticipant[_participant], "Already answered");
         require(
@@ -121,6 +122,7 @@ contract SurveyUpgradable is
             question.participants.length < maxNumberOfParticipants,
             "Participant limit reached"
         );
+
         question.isParticipant[_participant] = true;
         question.participants.push(_participant);
         for (uint i = 0; i < _answers.length; i++) {
@@ -128,6 +130,7 @@ contract SurveyUpgradable is
         }
         question.idxUnderReview[_participant] = question.underReview.length;
         question.underReview.push(_participant);
+        factoryC.addSurveyCompleted(_participant);
         if (question.participants.length >= maxNumberOfParticipants) {
             stage = Stage.Review;
             factoryC.enterReviewSurvey();
@@ -176,6 +179,7 @@ contract SurveyUpgradable is
         question.numberParticipentReviewed[participant] += 1;
         question.reviewVote[_reviewer] = _vote;
         question.isReviewer[_reviewer] = true;
+        factoryC.addSurveyCompleted(_reviewer);
         if (question.numberParticipentReviewed[participant] >= reviewsNeeded) {
             question.participantReviewed[participant] = true;
             reviewParticipantFinished(participant);

@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
@@ -27,6 +29,7 @@ contract SurveyFactory {
     mapping(address => bool) internal isSurvey;
     mapping(address => bool) internal surveyFinished;
     mapping(address => address[]) internal participatedSurveys; //Surveys a user participated in and has not received payment
+    mapping(address => address[]) internal userSurveys;
 
     event SurveyCreated(
         address survey,
@@ -46,6 +49,12 @@ contract SurveyFactory {
         surveyImplementation = _surveyImplementation;
     }
 
+    function surveyParticpated(
+        address _participant
+    ) public view returns (address[] memory) {
+        return participatedSurveys[_participant];
+    }
+
     function createSurvey(
         string[] memory _questions,
         uint256 _participants,
@@ -57,6 +66,7 @@ contract SurveyFactory {
             msg.value == _capital,
             "Amount in the message is not equal to the amount specified"
         );
+        require(_endTime > block.timestamp, "End Time must be in the future");
         bytes32 salt = keccak256(
             abi.encodePacked(_participants, _endTime, _reviewNeeded, _capital)
         );
@@ -71,11 +81,13 @@ contract SurveyFactory {
         indexOfSurvey[survey] = allSurveys.length;
         allSurveys.push(survey);
         isSurvey[survey] = true;
+        userSurveys[msg.sender].push(survey);
         emit SurveyCreated(survey, _participants, _endTime, _capital);
     }
 
     //Survey will add Participants and Reviewers for them to be able to withdraw
     function addSurveyCompleted(address _participant) external onlySurvey {
+        console.log(_participant);
         participatedSurveys[_participant].push(msg.sender);
     }
 
