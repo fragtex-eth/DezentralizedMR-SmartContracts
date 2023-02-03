@@ -3,9 +3,23 @@ pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./SurveyUpgradable.sol";
 
-contract SurveyFactory is SurveyUpgradable {
+interface ISurveyUpgradable {
+    function initialize(
+        uint256 _participants,
+        uint256 _endTime,
+        uint256 _reviewNeeded,
+        uint256 _capital
+    ) external;
+
+    function setQuestions(string[] memory _questions) external;
+
+    function calculateEarnings(
+        address _beneficiary
+    ) external view returns (uint earnings);
+}
+
+contract SurveyFactory {
     address public surveyImplementation;
 
     address[] public allSurveys;
@@ -13,6 +27,15 @@ contract SurveyFactory is SurveyUpgradable {
     mapping(address => bool) internal isSurvey;
     mapping(address => bool) internal surveyFinished;
     mapping(address => address[]) internal participatedSurveys; //Surveys a user participated in and has not received payment
+
+    event SurveyCreated(
+        address survey,
+        uint _participants,
+        uint _endTime,
+        uint _capital
+    );
+    event SurveyEntersReviewStage(address survey);
+    event SurveyFinished(address survey);
 
     modifier onlySurvey() {
         require(isSurvey[msg.sender], "Only surveys can call this function");
@@ -38,16 +61,17 @@ contract SurveyFactory is SurveyUpgradable {
             abi.encodePacked(_participants, _endTime, _reviewNeeded, _capital)
         );
         survey = Clones.cloneDeterministic(surveyImplementation, salt);
-        SurveyUpgradable(survey).initialize(
+        ISurveyUpgradable(survey).initialize(
             _participants,
             _endTime,
             _reviewNeeded,
             _capital
         );
-        SurveyUpgradable(survey).setQuestions(_questions);
+        ISurveyUpgradable(survey).setQuestions(_questions);
         indexOfSurvey[survey] = allSurveys.length;
         allSurveys.push(survey);
         isSurvey[survey] = true;
+        emit SurveyCreated(survey, _participants, _endTime, _capital);
     }
 
     //Survey will add Participants and Reviewers for them to be able to withdraw
@@ -62,7 +86,7 @@ contract SurveyFactory is SurveyUpgradable {
         uint totalAmount = 0;
         for (uint i = 0; i < participatedSurveys[_participant].length; i++) {
             if (surveyFinished[participatedSurveys[_participant][i]]) {
-                totalAmount += SurveyUpgradable(
+                totalAmount += ISurveyUpgradable(
                     participatedSurveys[_participant][i]
                 ).calculateEarnings(_participant);
                 removeSurveyFromUser(_participant, i);
@@ -90,7 +114,13 @@ contract SurveyFactory is SurveyUpgradable {
     }
 
     //Function will be called by Survey after the End to remove it from the active surveys.
+    function enterReviewSurvey() external onlySurvey {
+        emit SurveyEntersReviewStage(msg.sender);
+    }
+
+    //Function will be called by Survey after the End to remove it from the active surveys.
     function finishSuvery() external onlySurvey {
         surveyFinished[msg.sender] = true;
+        emit SurveyFinished(msg.sender);
     }
 }

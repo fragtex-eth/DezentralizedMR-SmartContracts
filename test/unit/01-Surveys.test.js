@@ -18,7 +18,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
           surveyConfig.reviewsNeeded,
           surveyConfig.capital,
         ];
-        Survey = await await ethers.getContractFactory("SurveyUpgradable");
+        Survey = await ethers.getContractFactory("SurveyUpgradable");
         tokenContract = await upgrades.deployProxy(Survey, args);
 
         tokenContract = tokenContract.connect(deployer);

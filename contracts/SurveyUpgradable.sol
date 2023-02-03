@@ -5,8 +5,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-interface FactoryContract {
+interface IFactorContract {
     function finishSuvery() external;
+
+    function enterReviewSurvey() external;
 }
 
 contract SurveyUpgradable is
@@ -65,7 +67,7 @@ contract SurveyUpgradable is
     uint256 internal randNonce;
     uint256 internal constant DIFFERENCE = 1;
     bool questionsSet; //If questions are already initalized
-    FactoryContract public factoryC;
+    IFactorContract public factoryC;
 
     event StageChanged(Stage);
 
@@ -84,7 +86,7 @@ contract SurveyUpgradable is
         capitalReview = _capital - capitalParticipants;
         randNonce = 0;
         stage = Stage.Question;
-        factoryC = FactoryContract(msg.sender);
+        factoryC = IFactorContract(msg.sender);
         emit StageChanged(stage);
     }
 
@@ -128,6 +130,7 @@ contract SurveyUpgradable is
         question.underReview.push(_participant);
         if (question.participants.length >= maxNumberOfParticipants) {
             stage = Stage.Review;
+            factoryC.enterReviewSurvey();
             emit StageChanged(stage);
         }
     }
