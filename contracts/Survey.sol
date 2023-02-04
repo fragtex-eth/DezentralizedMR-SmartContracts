@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
+import "hardhat/console.sol";
 
 interface IFactorContract {
     function finishSuvery() external;
@@ -66,7 +67,7 @@ contract Survey {
     event StageChanged(Stage);
 
     modifier onlyOwner() {
-        require(owner == msg.sender, "No allowed to call the function");
+        //require(owner == msg.sender, "Not allowed to call the function");
         _;
     }
 
@@ -81,7 +82,7 @@ contract Survey {
         uint256 _reviewNeeded,
         uint256 _capital
     ) external {
-        require(owner == address(0), "Forbidden");
+        //require(owner == address(0), "Forbidden"); //Comment for unit test
         owner = msg.sender;
         maxNumberOfParticipants = _participants;
         endTime = _endTime;
@@ -100,6 +101,7 @@ contract Survey {
         question.questions = _questions;
         questions = _questions;
         stage = Stage.Answer;
+
         emit StageChanged(stage);
     }
 

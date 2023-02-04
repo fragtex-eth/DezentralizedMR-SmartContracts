@@ -1,3 +1,5 @@
+//TESTS OUTDATED, refer to another version of the contract!!
+
 const { expect } = require("chai");
 const { network, deployments, ethers, time } = require("hardhat");
 const { developmentChains } = require("../../helper-hardhat-config");
@@ -18,7 +20,7 @@ const { surveyConfig } = require("../../hardhat-token-config");
           surveyConfig.reviewsNeeded,
           surveyConfig.capital,
         ];
-        Survey = await ethers.getContractFactory("Survey");
+        Survey = await ethers.getContractFactory("SurveyUpgradable");
         tokenContract = await upgrades.deployProxy(Survey, args);
 
         tokenContract = tokenContract.connect(deployer);
