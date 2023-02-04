@@ -7,9 +7,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  args = [];
+  survey = await ethers.getContract("Survey");
+  args = [survey.address];
 
-  const survey = await deploy("Survey", {
+  const SurveyFactory = await deploy("SurveyFactory", {
     from: deployer,
     args: args,
     log: true,

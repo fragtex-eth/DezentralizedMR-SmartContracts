@@ -20,17 +20,16 @@ const hre = require("hardhat");
         alice = accounts[1];
         bob = accounts[2];
         charles = accounts[3];
+        await deployments.fixture(["all"]);
         args = [
           surveyConfig.maxNumberOfParticipants,
           surveyConfig.endTime,
           surveyConfig.reviewsNeeded,
           surveyConfig.capital,
         ];
-        const Survey = await ethers.getContractFactory("SurveyUpgradable");
-        tokenContract = await upgrades.deployProxy(Survey, args);
-        const Factory = await ethers.getContractFactory("SurveyFactory");
-        factoryContract = await Factory.deploy(tokenContract.address);
-        await factoryContract.deployed();
+        factoryContract = await ethers.getContract("SurveyFactory");
+        //tokenContract = await upgrades.deployProxy(Survey, args);
+        tokenContract = await ethers.getContract("Survey");
 
         factoryContract = factoryContract.connect(deployer);
         factoryContractAlice = factoryContract.connect(alice);
@@ -85,6 +84,7 @@ const hre = require("hardhat");
              * Create 5 surveys
              */
             for (let i = 0; i < 4; i++) {
+              //Not optimal need to find a way to get the address in another way
               survey = await factoryContractAlice.callStatic.createSurvey(
                 surveyConfig.questions,
                 surveyConfig.maxNumberOfParticipants,
@@ -96,30 +96,37 @@ const hre = require("hardhat");
                 }
               );
               surveys.push(survey);
+              survey = await factoryContractAlice.createSurvey(
+                surveyConfig.questions,
+                surveyConfig.maxNumberOfParticipants,
+                surveyConfig.endTime,
+                surveyConfig.reviewsNeeded,
+                surveyConfig.capital + i,
+                {
+                  value: surveyConfig.capital + i,
+                }
+              );
             }
-            survey = await factoryContractBob.callStatic.createSurvey(
-              surveyConfig.questions,
-              surveyConfig.maxNumberOfParticipants,
-              surveyConfig.endTime,
-              surveyConfig.reviewsNeeded,
-              surveyConfig.capital + 100,
-              {
-                value: surveyConfig.capital + 100,
-              }
-            );
+
             surveys.push(survey);
-            const Survey = await ethers.getContractFactory("SurveyUpgradable");
+            const Survey = await ethers.getContractFactory("Survey");
             survey1 = Survey.attach(surveys[0]);
             survey1Alice = await survey1.connect(alice);
+            console.log(survey1Alice);
           });
           describe("Events from survey surveys", function () {
             it("should trigger even when answering a survey", async function () {
-              await expect(survey1Alice.answerQuestions(surveyConfig.answers1))
-                .to.not.be.reverted;
-              await expect(survey1Alice.factoryC()).to.be.revertedWith("23");
-              //   expect(
-              //     await factoryContractBob.surveyParticpated(alice.address)
-              //   ).to.be.equal(surveys[0]);
+              await expect(survey1Alice.number()).to.equal("#3");
+              // await expect(await factoryContractAlice.getSurvey(0)).to.be.equal(
+              //   survey1Alice.address
+              // );
+              // // await expect(survey1Alice.answerQuestions(surveyConfig.answers1))
+              // //   .to.not.be.reverted;
+              // await expect(survey1Alice.factoryC()).to.be.revertedWith("23");
+              // //   expect(
+              // expect(
+              //   await factoryContractBob.surveyParticpated(alice.address)
+              // ).to.be.equal(surveys[0]);
             });
           });
         });

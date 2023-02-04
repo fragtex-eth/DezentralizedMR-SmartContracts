@@ -45,6 +45,10 @@ contract SurveyFactory {
         _;
     }
 
+    function getSurvey(uint idx) public view returns (address) {
+        return allSurveys[idx];
+    }
+
     constructor(address _surveyImplementation) {
         surveyImplementation = _surveyImplementation;
     }
