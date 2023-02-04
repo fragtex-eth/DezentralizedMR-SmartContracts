@@ -45,18 +45,8 @@ contract SurveyFactory {
         _;
     }
 
-    function getSurvey(uint idx) public view returns (address) {
-        return allSurveys[idx];
-    }
-
     constructor(address _surveyImplementation) {
         surveyImplementation = _surveyImplementation;
-    }
-
-    function surveyParticpated(
-        address _participant
-    ) public view returns (address[] memory) {
-        return participatedSurveys[_participant];
     }
 
     function createSurvey(
@@ -124,7 +114,7 @@ contract SurveyFactory {
     ) internal {
         participatedSurveys[_participant][_idxSurvey] = participatedSurveys[
             _participant
-        ][participatedSurveys[_participant].length];
+        ][participatedSurveys[_participant].length - 1];
         participatedSurveys[_participant].pop();
     }
 

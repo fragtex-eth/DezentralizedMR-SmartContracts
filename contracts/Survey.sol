@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "hardhat/console.sol";
-
 interface IFactorContract {
     function finishSuvery() external;
 
@@ -72,12 +70,9 @@ contract Survey {
         _;
     }
 
-    constructor() public {
+    /**Contact can't be initialized directly */
+    constructor() {
         owner = address(0xdead);
-    }
-
-    function getFactory() public returns (address) {
-        return address(factoryC);
     }
 
     function initialize(
@@ -145,7 +140,8 @@ contract Survey {
      * @dev function to request a review
      * @notice has be called before answer can be reviewed/currently possible to surpass review limit, so might be able to request but not able to answer
      */
-    function requestReview(address _reviewer) external returns (address) {
+    function requestReview() external returns (address) {
+        address _reviewer = msg.sender;
         require(stage == Stage.Review, "Survey not in review stage");
         require(!question.rAssigned[_reviewer], "Already assigned");
         question.rAssigned[_reviewer] = true;
@@ -168,10 +164,10 @@ contract Survey {
 
     /**
      * @dev function to submit review
-     * @param _reviewer address of the reviewer
      * @param _vote vote decision
      */
-    function reviewAnswers(address _reviewer, Vote _vote) external {
+    function reviewAnswers(Vote _vote) external {
+        address _reviewer = msg.sender;
         require(stage == Stage.Review, "Survey not in review stage");
         address participant = question.reviewAssigned[_reviewer];
         require(
@@ -248,16 +244,14 @@ contract Survey {
     }
 
     function calculateEarningsReviewer(
-        uint _group //4 = hit, 3 = next, 2 = average
+        uint _group //0 = hit, 1 = next, 2 = average
     ) internal view returns (uint earnings) {
         uint amountPerReviewer = capitalReview /
             (question.hitReview + ((30 * question.nextReview) / 100));
-        if (_group == 4) {
+        if (_group == 0) {
             return amountPerReviewer;
-        } else if (_group == 3) {
-            return (amountPerReviewer * 50) / 100;
-        } else if (_group == 2) {
-            return (amountPerReviewer * 20) / 100;
+        } else if (_group == 1) {
+            return (amountPerReviewer * 30) / 100;
         } else {
             return 0;
         }

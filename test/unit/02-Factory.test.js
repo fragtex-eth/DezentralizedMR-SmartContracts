@@ -2,11 +2,10 @@ const { expect } = require("chai");
 const { network, deployments, ethers, time } = require("hardhat");
 const { developmentChains } = require("../../helper-hardhat-config");
 const { surveyConfig } = require("../../hardhat-token-config");
-const hre = require("hardhat");
 
 !developmentChains.includes(network.name)
   ? describe.skip
-  : describe.only("Factory Contract Unit Tests", function () {
+  : describe("Factory Contract Unit Tests", function () {
       const surveyArgs = [
         surveyConfig.questions,
         surveyConfig.maxNumberOfParticipants,
@@ -78,6 +77,7 @@ const hre = require("hardhat");
         });
         describe("Surveys running", function () {
           let surveys = [];
+          let survey1, survey2, survey3, survey4;
           let survey1Alice;
           beforeEach(async () => {
             /**
@@ -111,20 +111,148 @@ const hre = require("hardhat");
             surveys.push(survey);
             const Survey = await ethers.getContractFactory("Survey");
             survey1 = Survey.attach(surveys[0]);
+            survey2 = Survey.attach(surveys[1]);
+            survey3 = Survey.attach(surveys[2]);
+            survey4 = Survey.attach(surveys[2]);
             survey1Alice = await survey1.connect(alice);
           });
           describe("Events from survey surveys", function () {
-            it("should trigger even when answering a survey", async function () {
+            it("Clone correctly initialized", async function () {
               expect(await survey1Alice.owner()).to.equal(
                 factoryContract.address
               );
               await expect(survey1Alice.answerQuestions(surveyConfig.answers1))
                 .to.not.be.reverted;
-              // await expect(survey1Alice.factoryC()).to.be.revertedWith("23");
-              // //   expect(
-              // expect(
-              //   await factoryContractBob.surveyParticpated(alice.address)
-              // ).to.be.equal(surveys[0]);
+            });
+            it("Should trigger event in Factory when Clone enters the next stage", async function () {
+              //**Answers Survey requested amount -1 times */
+              accounts = await ethers.getSigners();
+              for (
+                var i = 0;
+                i < surveyConfig.maxNumberOfParticipants - 1;
+                i++
+              ) {
+                survey1participant = survey1.connect(accounts[i]);
+                await survey1participant.answerQuestions(surveyConfig.answers2);
+              }
+              survey1participant = survey1.connect(
+                accounts[surveyConfig.maxNumberOfParticipants]
+              );
+              await expect(
+                survey1participant.answerQuestions(surveyConfig.answers2)
+              )
+                .to.emit(factoryContract, "SurveyEntersReviewStage")
+                .withArgs(survey1.address);
+
+              //**Review Survey requested amount -1 times */
+              for (
+                var i = 0;
+                i <
+                surveyConfig.maxNumberOfParticipants *
+                  surveyConfig.reviewsNeeded -
+                  1;
+                i++
+              ) {
+                let newWallet = ethers.Wallet.createRandom();
+                await deployer.sendTransaction({
+                  to: newWallet.address,
+                  value: ethers.utils.parseEther("1"),
+                });
+                newWallet = newWallet.connect(ethers.provider);
+                newWallet = survey1.connect(newWallet);
+
+                await newWallet.requestReview();
+                await newWallet.reviewAnswers(1);
+              }
+              let newWallet = ethers.Wallet.createRandom();
+              await deployer.sendTransaction({
+                to: newWallet.address,
+                value: ethers.utils.parseEther("1"),
+              });
+              newWallet = newWallet.connect(ethers.provider);
+              newWallet = survey1.connect(newWallet);
+              await newWallet.requestReview();
+              await expect(newWallet.reviewAnswers(1))
+                .to.emit(factoryContract, "SurveyFinished")
+                .withArgs(survey1.address);
+            });
+          });
+          describe("Get/Withdraw Earnings", function () {
+            beforeEach(async () => {
+              //Finish Survey 1:
+              //Answering Question Survey1:
+              for (
+                var i = 5;
+                i < surveyConfig.maxNumberOfParticipants + 5 - 1;
+                i++
+              ) {
+                survey1participant = survey1.connect(accounts[i]);
+                await survey1participant.answerQuestions(surveyConfig.answers2);
+              }
+              surveyCharles = survey1.connect(charles);
+              await surveyCharles.answerQuestions(surveyConfig.answers3);
+              //Completing Review Survey1:
+              for (
+                var i = 0;
+                i <
+                surveyConfig.maxNumberOfParticipants *
+                  surveyConfig.reviewsNeeded -
+                  1;
+                i++
+              ) {
+                let newWallet = ethers.Wallet.createRandom();
+                await deployer.sendTransaction({
+                  to: newWallet.address,
+                  value: ethers.utils.parseEther("1"),
+                });
+                newWallet = newWallet.connect(ethers.provider);
+                newWallet = survey1.connect(newWallet);
+
+                await newWallet.requestReview();
+                await newWallet.reviewAnswers(4);
+              }
+              surveyBob = survey1.connect(bob);
+              await surveyBob.requestReview();
+              await surveyBob.reviewAnswers(4);
+            });
+            describe("Withdraw Earnings", function () {
+              it("Non participating user should not be able to withdraw", async function () {
+                await expect(
+                  factoryContractAlice.withdrawEarnings()
+                ).to.be.revertedWith("No pending earnings");
+              });
+              it("Participating user should be able to withdraw", async function () {
+                let wallet1balance = await ethers.provider.getBalance(
+                  charles.address
+                );
+                await factoryContractCharles.withdrawEarnings();
+                let wallet1balanceAfter = await ethers.provider.getBalance(
+                  charles.address
+                );
+                //Improve make accurate calculation
+                expect(parseInt(wallet1balanceAfter)).to.be.greaterThan(
+                  parseInt(wallet1balance)
+                );
+              });
+              it("Reviewing user should be able to withdraw", async function () {
+                let wallet1balance1 = await ethers.provider.getBalance(
+                  bob.address
+                );
+                await factoryContractBob.withdrawEarnings();
+                let wallet1balanceAfter1 = await ethers.provider.getBalance(
+                  bob.address
+                );
+                //Improve make accurate calculation
+                expect(parseInt(wallet1balanceAfter1)).to.be.greaterThan(
+                  parseInt(wallet1balance1)
+                );
+              });
+              it("User is not able to withdraw twice", async function () {
+                await factoryContractBob.withdrawEarnings();
+                await expect(
+                  factoryContractBob.withdrawEarnings()
+                ).to.be.revertedWith("No pending earnings");
+              });
             });
           });
         });

@@ -9,7 +9,7 @@ const surveyConfig = {
   maxNumberOfParticipants: 10,
   endTime: 1675604149,
   reviewsNeeded: 10,
-  capital: 100000,
+  capital: "1000000000000000",
   answers1: [
     "Lack of convenience, long wait times, and limited product options",
     "Using multiple apps, making phone calls, or visiting physical stores",
