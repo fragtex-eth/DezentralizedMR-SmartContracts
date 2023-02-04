@@ -112,16 +112,14 @@ const hre = require("hardhat");
             const Survey = await ethers.getContractFactory("Survey");
             survey1 = Survey.attach(surveys[0]);
             survey1Alice = await survey1.connect(alice);
-            console.log(survey1Alice);
           });
           describe("Events from survey surveys", function () {
             it("should trigger even when answering a survey", async function () {
-              await expect(survey1Alice.number()).to.equal("#3");
-              // await expect(await factoryContractAlice.getSurvey(0)).to.be.equal(
-              //   survey1Alice.address
-              // );
-              // // await expect(survey1Alice.answerQuestions(surveyConfig.answers1))
-              // //   .to.not.be.reverted;
+              expect(await survey1Alice.owner()).to.equal(
+                factoryContract.address
+              );
+              await expect(survey1Alice.answerQuestions(surveyConfig.answers1))
+                .to.not.be.reverted;
               // await expect(survey1Alice.factoryC()).to.be.revertedWith("23");
               // //   expect(
               // expect(

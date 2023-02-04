@@ -91,7 +91,6 @@ contract SurveyFactory {
 
     //Survey will add Participants and Reviewers for them to be able to withdraw
     function addSurveyCompleted(address _participant) external onlySurvey {
-        console.log(_participant);
         participatedSurveys[_participant].push(msg.sender);
     }
 

@@ -114,7 +114,6 @@ contract Survey {
      * @param _answers Survey answers
      */
     function answerQuestions(string[] calldata _answers) external {
-        console.log(msg.sender);
         address _participant = msg.sender;
         //only be called by owner change after test
         require(!question.isParticipant[_participant], "Already answered");
