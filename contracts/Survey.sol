@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
-import "hardhat/console.sol";
 
 interface IFactorContract {
     function finishSuvery() external;
@@ -11,6 +10,49 @@ interface IFactorContract {
 }
 
 contract Survey {
+    IFactorContract public factoryC;
+
+    string public name;
+    string[] public questions;
+    uint256 public maxNumberOfParticipants; //Maximum number of participants
+    uint256 public reviewsNeeded; //Number of evaluations needed
+    uint256 public endTime; //EndTime when survey can be closed
+    uint256 public capitalParticipants; //Capital allocation for the participants
+    uint256 public capitalReview; //Capital allocated for the reviewers
+    address public owner;
+
+    bool questionsSet; //If questions are already initalized
+    uint256 internal randNonce;
+    uint256 internal constant DIFFERENCE = 1;
+
+    struct Question {
+        string[] questions; //Array of questions
+        address[] participants; //Array of participants
+        address[] underReview; //Array of participants that have not been fully reviewed yet
+        address[] validAnswers; //All participants with valid answers
+        address[] inValidAnswers; //All participants with invalid answers
+        uint hitReview; // Number of reviewers that made the correct choice
+        uint nextReview; // Number of reviewers that are close to the "correct" choice
+        uint excellent; // Number of reviewers that made the correct choice
+        uint good;
+        uint average; // Number of reviewers that made the correct choice
+        mapping(address => bool) isParticipant; //If address is participant
+        mapping(address => bool) isReviewer; //If address is reviewer
+        mapping(address => uint) idxUnderReview; //Index in the UnderReview array of address
+        mapping(address => bool) participantReviewed; //If participant has been reviewed
+        mapping(address => mapping(uint => string)) answers; //Answers by the participants
+        mapping(address => Vote) participantResult;
+        mapping(address => Vote) reviewVote;
+        mapping(address => address[]) assignedReview;
+        mapping(address => address) reviewAssigned; //Participant that is asigned to reviewee
+        mapping(address => uint) resultReview; // Result of participant in uint;
+        mapping(address => mapping(Vote => address[])) votesReview; //Participant assignment to each of the selections made by the reviewers.
+        mapping(address => uint) numberParticipentReviewed; //Number of times a participant has been reviewed.
+        mapping(address => bool) rAssigned; //If participant was assigned to a reviewer
+    }
+
+    Question internal question;
+
     enum Vote {
         Poor,
         Fair,
@@ -25,67 +67,32 @@ contract Survey {
         Completed
     }
 
-    struct Question {
-        string[] questions; //Array of the questions
-        address[] participants; //Array of the participants
-        address[] underReview; //Array of participants that have not been fully reviewed yet
-        address[] validAnswers; //All participants with valid answers
-        address[] inValidAnswers; //All participants with invalid answers
-        uint hitReview; // Number of Reviewers that made the correct choice
-        uint nextReview; // Amount of Reviewers that are close to the final choice receive 30% of the reward that hit users receive
-        uint excellent; // Number of Reviewers that made the correct choice
-        uint good;
-        uint average; // Number of Reviewers that made the correct choice
-        mapping(address => bool) isParticipant; //If address is participant
-        mapping(address => bool) isReviewer; //If address is participant
-        mapping(address => uint) idxUnderReview; //Indexin the UnderReview array of specific addresses
-        mapping(address => bool) participantReviewed; //Address has been reviewed
-        mapping(address => mapping(uint => string)) answers; //Given answers by the participants
-        mapping(address => Vote) participantResult; //Result of the
-        mapping(address => Vote) reviewVote;
-        mapping(address => address[]) assignedReview;
-        mapping(address => address) reviewAssigned; //Links Reviewee to participant that is assigned to him
-        mapping(address => uint) resultReview; // Result of participant in uint;
-        mapping(address => mapping(Vote => address[])) votesReview; //Participant mapping to each of the choices the reviewers took
-        mapping(address => uint) numberParticipentReviewed; //Number of times a reviewer has been reviewed
-        mapping(address => bool) rAssigned; //Participant has been assigned to reviewre
-    }
-
     Stage public stage;
-    Question internal question;
-    string[] public questions;
-    uint256 public maxNumberOfParticipants; //maximal number of participants
-    uint256 public reviewsNeeded; //number of reviews per participant
-    uint256 public endTime; //EndTime when survey can be closed
-    uint256 public capitalParticipants; //Capital assigned for the participants
-    uint256 public capitalReview; //Capital assigned for the reviewers
-    uint256 internal randNonce;
-    uint256 internal constant DIFFERENCE = 1;
-    bool questionsSet; //If questions are already initalized
-    IFactorContract public factoryC;
-    address public owner;
+
     event StageChanged(Stage);
 
     modifier onlyOwner() {
-        //require(owner == msg.sender, "Not allowed to call the function");
+        require(owner == msg.sender, "Not allowed to call the function");
         _;
     }
 
-    /**Contact can't be initialized directly */
+    /**Contract cannot be initialized directly */
     constructor() {
         owner = address(0xdead);
     }
 
     function initialize(
+        string memory _name,
         uint256 _participants,
         uint256 _endTime,
         uint256 _reviewNeeded,
         uint256 _capital
     ) external {
-        //require(owner == address(0), "Forbidden"); //Comment for unit test
+        require(owner == address(0), "Forbidden");
         owner = msg.sender;
+        name = _name;
         maxNumberOfParticipants = _participants;
-        endTime = _endTime;
+        endTime = block.timestamp + _endTime;
         reviewsNeeded = _reviewNeeded;
         capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
@@ -108,11 +115,10 @@ contract Survey {
     /**
      * @dev Function to answer the question
      *
-     * @param _answers Survey answers
+     * @param _answers survey answers
      */
     function answerQuestions(string[] calldata _answers) external {
         address _participant = msg.sender;
-        //only be called by owner change after test
         require(!question.isParticipant[_participant], "Already answered");
         require(
             _answers.length == question.questions.length,
@@ -140,8 +146,8 @@ contract Survey {
 
     /**
      * @dev function to request a review
-     * @notice has be called before answer can be reviewed/currently possible to surpass review limit, so might be able to request but not able to answer
-     */
+     * @notice must be called before the response can be checked
+     * */
     function requestReview() external returns (address) {
         address _reviewer = msg.sender;
         require(stage == Stage.Review, "Survey not in review stage");
@@ -155,8 +161,8 @@ contract Survey {
     }
 
     /**
-     * @notice Return the participant that is assigned to the reviewer
-     * @param _reviewer address of the reviewer
+     * @notice Return participant that is assigned to the reviewer.
+     * @param _reviewer Address of the reviewer
      */
     function returnReviewParticipant(
         address _reviewer
@@ -189,8 +195,8 @@ contract Survey {
     }
 
     /**
-     * @notice function to get the earings of an address
-     * @param _beneficiary beneficiary earnings
+     * @notice Function to determine the earnings of an address.
+     * @param _beneficiary address of beneficiary
      */
     function calculateEarnings(
         address _beneficiary
@@ -219,7 +225,7 @@ contract Survey {
     }
 
     /**
-     * Close survey manully in case there are not enough participants
+     * Close the survey manual if there are not enough participants.
      */
     function closeSurvey() external onlyOwner {
         require(stage != Stage.Completed);
@@ -228,7 +234,7 @@ contract Survey {
     }
 
     /**
-     * Function that returns the current stage
+     * Returns the current stage
      */
     function getStage() external view onlyOwner returns (uint currentStage) {
         if (stage == Stage.Question) {
@@ -245,6 +251,32 @@ contract Survey {
         }
     }
 
+    /**
+     * Display a response from a participant
+     * @param _participant Address of the participant
+     * @param _questionNr Index of the address (0-4)
+     */
+    function viewAnswers(
+        address _participant,
+        uint _questionNr
+    ) external view returns (string memory) {
+        require(stage == Stage.Completed || stage == Stage.Review);
+        return question.answers[_participant][_questionNr];
+    }
+
+    /**
+     * Returns valid answers
+     */
+    function getValidAnswers()
+        external
+        view
+        onlyOwner
+        returns (address[] memory)
+    {
+        require(stage == Stage.Completed);
+        return question.validAnswers;
+    }
+
     function calculateEarningsReviewer(
         uint _group //0 = hit, 1 = next, 2 = average
     ) internal view returns (uint earnings) {
@@ -257,32 +289,6 @@ contract Survey {
         } else {
             return 0;
         }
-    }
-
-    /**
-     * View an answer of a participant
-     * @param _participant address of participant
-     * @param _questionNr index of address (0-4)
-     */
-    function viewAnswers(
-        address _participant,
-        uint _questionNr
-    ) external view returns (string memory) {
-        require(stage == Stage.Completed || stage == Stage.Review);
-        return question.answers[_participant][_questionNr];
-    }
-
-    /**
-     * Functon that returns valid answers
-     */
-    function getValidAnswers()
-        external
-        view
-        onlyOwner
-        returns (address[] memory)
-    {
-        require(stage == Stage.Completed);
-        return question.validAnswers;
     }
 
     function calculateEarningsParticipant(
@@ -399,8 +405,8 @@ contract Survey {
     }
 
     /**
-     * @notice PRNG, could be manipulated theoretically hower in this case would not have a big impact as it would only have a minimum impact on the result.
-     * @param _modulus Range of random number
+     * @notice PRNG, could theoretically be manipulated, but would not have much impact in this case as it would have minimal effect on the result.
+     * @param _modulus range of random number.
      */
     function randomNumber(uint _modulus) internal virtual returns (uint) {
         randNonce++;

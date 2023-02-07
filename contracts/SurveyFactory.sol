@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "hardhat/console.sol";
-
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
 interface ISurveyUpgradable {
     function initialize(
+        string memory _name,
         uint256 _participants,
         uint256 _endTime,
         uint256 _reviewNeeded,
@@ -22,9 +20,9 @@ interface ISurveyUpgradable {
 }
 
 contract SurveyFactory {
+    address[] public allSurveys;
     address public surveyImplementation;
 
-    address[] public allSurveys;
     mapping(address => uint) internal indexOfSurvey;
     mapping(address => bool) internal isSurvey;
     mapping(address => bool) internal surveyFinished;
@@ -51,6 +49,7 @@ contract SurveyFactory {
 
     function createSurvey(
         string[] memory _questions,
+        string memory _name,
         uint256 _participants,
         uint256 _endTime,
         uint256 _reviewNeeded,
@@ -62,10 +61,17 @@ contract SurveyFactory {
         );
         require(_endTime > block.timestamp, "End Time must be in the future");
         bytes32 salt = keccak256(
-            abi.encodePacked(_participants, _endTime, _reviewNeeded, _capital)
+            abi.encodePacked(
+                _name,
+                _participants,
+                _endTime,
+                _reviewNeeded,
+                _capital
+            )
         );
         survey = Clones.cloneDeterministic(surveyImplementation, salt);
         ISurveyUpgradable(survey).initialize(
+            _name,
             _participants,
             _endTime,
             _reviewNeeded,
@@ -79,12 +85,46 @@ contract SurveyFactory {
         emit SurveyCreated(survey, _participants, _endTime, _capital);
     }
 
-    //Survey will add Participants and Reviewers for them to be able to withdraw
+    //Participation of reviewers and participants is stored in withdraw array
+    function withdrawEarnings() external {
+        uint userEarnings = getEarningsUser(msg.sender); //+removeitFromArray
+        require(userEarnings > 0, "No pending earnings");
+        (bool result, ) = payable(msg.sender).call{value: userEarnings}("");
+        require(result, "Withdraw failed");
+    }
+
+    //View earinings
+    function getEarningsUserView(
+        address _participant
+    ) external view returns (uint totalEarnings) {
+        uint totalAmount = 0;
+        for (uint i = 0; i < participatedSurveys[_participant].length; i++) {
+            if (surveyFinished[participatedSurveys[_participant][i]]) {
+                totalAmount += ISurveyUpgradable(
+                    participatedSurveys[_participant][i]
+                ).calculateEarnings(_participant);
+            }
+        }
+        return totalAmount;
+    }
+
+    //Event enter review stage
+    function enterReviewSurvey() external onlySurvey {
+        emit SurveyEntersReviewStage(msg.sender);
+    }
+
+    //Function is called by the survey after the end to remove it from the active surveys.
+    function finishSuvery() external onlySurvey {
+        surveyFinished[msg.sender] = true;
+        emit SurveyFinished(msg.sender);
+    }
+
+    //Survey adds participants and reviewers to - helper function for later withdraw
     function addSurveyCompleted(address _participant) external onlySurvey {
         participatedSurveys[_participant].push(msg.sender);
     }
 
-    //Calculate EarningsOfParticipant
+    //Calculate Earnings + Remove
     function getEarningsUser(
         address _participant
     ) internal returns (uint totalEarnings) {
@@ -100,14 +140,6 @@ contract SurveyFactory {
         return totalAmount;
     }
 
-    //Participation of reviewers and participants will be stored in withdraw array
-    function withdrawEarnings() external {
-        uint userEarnings = getEarningsUser(msg.sender); //+removeitFromArray
-        require(userEarnings > 0, "No pending earnings");
-        (bool result, ) = payable(msg.sender).call{value: userEarnings}("");
-        require(result, "Withdraw failed");
-    }
-
     function removeSurveyFromUser(
         address _participant,
         uint _idxSurvey
@@ -116,16 +148,5 @@ contract SurveyFactory {
             _participant
         ][participatedSurveys[_participant].length - 1];
         participatedSurveys[_participant].pop();
-    }
-
-    //Function will be called by Survey after the End to remove it from the active surveys.
-    function enterReviewSurvey() external onlySurvey {
-        emit SurveyEntersReviewStage(msg.sender);
-    }
-
-    //Function will be called by Survey after the End to remove it from the active surveys.
-    function finishSuvery() external onlySurvey {
-        surveyFinished[msg.sender] = true;
-        emit SurveyFinished(msg.sender);
     }
 }
