@@ -114,7 +114,7 @@ contract SurveyFactory {
     }
 
     //Function is called by the survey after the end to remove it from the active surveys.
-    function finishSuvery() external onlySurvey {
+    function finishSurvey() external onlySurvey {
         surveyFinished[msg.sender] = true;
         emit SurveyFinished(msg.sender);
     }
