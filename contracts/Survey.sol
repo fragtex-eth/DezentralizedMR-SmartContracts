@@ -92,7 +92,7 @@ contract Survey {
         owner = msg.sender;
         name = _name;
         maxNumberOfParticipants = _participants;
-        endTime = block.timestamp + _endTime;
+        endTime = _endTime;
         reviewsNeeded = _reviewNeeded;
         capitalParticipants = (_capital * 30) / 100;
         capitalReview = _capital - capitalParticipants;
@@ -275,6 +275,10 @@ contract Survey {
     {
         require(stage == Stage.Completed);
         return question.validAnswers;
+    }
+
+    function getParticipants() external view returns (uint) {
+        return question.participants.length;
     }
 
     function calculateEarningsReviewer(

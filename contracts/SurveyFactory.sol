@@ -31,6 +31,8 @@ contract SurveyFactory {
 
     event SurveyCreated(
         address survey,
+        string[] questions,
+        string _name,
         uint _participants,
         uint _endTime,
         uint _capital
@@ -82,7 +84,14 @@ contract SurveyFactory {
         allSurveys.push(survey);
         isSurvey[survey] = true;
         userSurveys[msg.sender].push(survey);
-        emit SurveyCreated(survey, _participants, _endTime, _capital);
+        emit SurveyCreated(
+            survey,
+            _questions,
+            _name,
+            _participants,
+            _endTime,
+            _capital
+        );
     }
 
     //Participation of reviewers and participants is stored in withdraw array
