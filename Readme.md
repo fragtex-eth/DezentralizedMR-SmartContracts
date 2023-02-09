@@ -74,9 +74,9 @@ Options:
 2. Researcher will receive answer
 3. Payout for creator:
 
-- Spam (-500%)
-- Not accurate answer (-100%)
-- Neutral (0%)
+- Poor (-500%)
+- Fair (-100%)
+- Average (0%)
 - Good answer (100%)
 - Exceptional answer (200%)
 
@@ -92,7 +92,7 @@ Options:
 1. Create Survey with 5 questions
 2. Every users can participate
 3. If a question get a rating of at least average it gets accepted
-4. Distribution of Results and money
+4. Distribution of results and money
 
 #### Future steps:
 
