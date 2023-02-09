@@ -45,8 +45,7 @@ Researcher creates questionnaire and sets budget and participants
 Budget:
 
 - 30% -> Creator
-- 65% -> Reviewer
-- 5% -> Platform, later DAO
+- 70% -> Reviewer
 
 #### Answers are distributed
 
@@ -90,11 +89,15 @@ Options:
 
 ### Features MVP:
 
-1. Create Survey with 1 questions multiple choice. Which is the best logo which is the best image.
-2. Only verified users can participate
-3. Picture if most votes wins after the time period and voters receive rewards
+1. Create Survey with 5 questions
+2. Every users can participate
+3. If a question get a rating of at least average it gets accepted
 4. Distribution of Results and money
 
-#### Ideas:
+#### Future steps:
 
 Make sure questions are not submitted twice
+Verify that the address is an authentic person
+Add more flexibility to the surveys
+Make the UX more userfriendly
+..
